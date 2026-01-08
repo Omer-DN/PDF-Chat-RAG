@@ -1,43 +1,32 @@
 package org.handson.ragllm.controller;
 
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import org.springframework.http.HttpStatus;
+import org.handson.ragllm.model.PdfFile;
+import org.handson.ragllm.service.PdfFileService;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/pdf")
 public class PdfController {
 
-    @Operation(
-            summary = "Upload PDF file",
-            description = "Upload a single PDF to the RAG system",
-            responses = {
-                    @ApiResponse(responseCode = "200", description = "PDF uploaded successfully"),
-                    @ApiResponse(responseCode = "400", description = "No file uploaded")
-            }
-    )
-    @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<String> uploadPdf(
-            @Parameter(description = "PDF file to upload", required = true)
-            @RequestPart("file") MultipartFile file) {
+    private final PdfFileService pdfService;
 
-        if (file.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("No file uploaded");
-        }
-
-        // כאן נוכל להוסיף שמירה זמנית או שירות
-        return ResponseEntity.ok("PDF uploaded successfully: " + file.getOriginalFilename());
+    public PdfController(PdfFileService pdfService) {
+        this.pdfService = pdfService;
     }
 
-    @GetMapping("/hello")
-    public String hello() {
-        return "Hello PDF RAG!";
+    @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public Map<String, Object> uploadPdf(@RequestParam("file") MultipartFile file) throws Exception {
+
+        PdfFile saved = pdfService.save(file);
+
+        return Map.of(
+                "message", "PDF uploaded successfully",
+                "pdfId", saved.getId(),
+                "filename", saved.getFilename()
+        );
     }
 }
