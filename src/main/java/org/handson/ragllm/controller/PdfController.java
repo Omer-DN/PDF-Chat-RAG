@@ -47,7 +47,8 @@ public class PdfController {
         return Map.of(
                 "message", "PDF uploaded successfully",
                 "pdfId", saved.getId(),
-                "filename", saved.getFilename()
+                "filename", saved.getFilename(),
+                "numChunks", chunks.size()
         );
     }
 
@@ -71,12 +72,15 @@ public class PdfController {
     // =========================
     @GetMapping("/{pdfId}/chunks")
     public Map<String, Object> getPdfChunks(@PathVariable Long pdfId) {
+
+        // שולף מה־DB את ה־chunks שמורים
         var chunks = chunkStorageService.getChunks(pdfId);
 
         return Map.of(
                 "pdfId", pdfId,
                 "numChunks", chunks.size(),
-                "chunks", chunks
+                "chunks", chunks.stream().map(c -> c.getText()).toList()
         );
     }
+
 }

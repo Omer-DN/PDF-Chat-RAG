@@ -1,5 +1,7 @@
 package org.handson.ragllm.service;
 
+import org.handson.ragllm.model.PdfTextChunk;
+import org.handson.ragllm.repository.PdfTextChunkRepository;
 import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.List;
@@ -8,14 +10,20 @@ import java.util.Map;
 @Service
 public class PdfChunkStorageService {
 
-    // שמירת chunks לפי pdfId
-    private final Map<Long, List<String>> storage = new HashMap<>();
+    private final PdfTextChunkRepository repository;
 
-    public void saveChunks(Long pdfId, List<String> chunks) {
-        storage.put(pdfId, chunks);
+    public PdfChunkStorageService(PdfTextChunkRepository repository) {
+        this.repository = repository;
     }
 
-    public List<String> getChunks(Long pdfId) {
-        return storage.getOrDefault(pdfId, List.of());
+    public void saveChunks(Long pdfId, List<String> chunks) {
+        for (int i = 0; i < chunks.size(); i++) {
+            PdfTextChunk chunk = new PdfTextChunk(pdfId, chunks.get(i), i);
+            repository.save(chunk);
+        }
+    }
+
+    public List<PdfTextChunk> getChunks(Long pdfId) {
+        return repository.findByPdfIdOrderByChunkNumberAsc(pdfId);
     }
 }
