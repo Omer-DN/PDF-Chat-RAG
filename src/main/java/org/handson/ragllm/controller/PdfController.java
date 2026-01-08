@@ -14,19 +14,19 @@ public class PdfController {
 
     private final PdfFileService pdfFileService;
     private final PdfTextExtractorService textExtractorService;
-    private final PdfTextChunkStorageService chunkStorageService;
     private final PdfChunkService chunkService;
+    private final PdfTextChunkStorageService chunkStorageService; // ← הוספנו
 
     public PdfController(
             PdfFileService pdfFileService,
             PdfTextExtractorService textExtractorService,
-            PdfTextChunkStorageService chunkStorageService,
-            PdfChunkService chunkService
+            PdfChunkService chunkService,
+            PdfTextChunkStorageService chunkStorageService // ← הוספנו
     ) {
         this.pdfFileService = pdfFileService;
         this.textExtractorService = textExtractorService;
-        this.chunkStorageService = chunkStorageService;
         this.chunkService = chunkService;
+        this.chunkStorageService = chunkStorageService; // ← הוספנו
     }
 
     // =========================
@@ -43,6 +43,7 @@ public class PdfController {
 
         // Save chunks
         chunkStorageService.saveChunks(saved.getId(), chunks);
+
         return Map.of(
                 "message", "PDF uploaded successfully",
                 "pdfId", saved.getId(),
@@ -65,10 +66,12 @@ public class PdfController {
         );
     }
 
+    // =========================
+    // Get Chunks (DEBUG)
+    // =========================
     @GetMapping("/{pdfId}/chunks")
     public Map<String, Object> getPdfChunks(@PathVariable Long pdfId) {
-        String text = textExtractorService.extractText(pdfId);
-        var chunks = chunkService.splitTextIntoChunks(text);
+        var chunks = chunkStorageService.getChunks(pdfId);
 
         return Map.of(
                 "pdfId", pdfId,

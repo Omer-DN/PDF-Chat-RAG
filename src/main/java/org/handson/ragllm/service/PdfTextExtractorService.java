@@ -1,34 +1,39 @@
 package org.handson.ragllm.service;
 
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.text.PDFTextStripper;
 import org.handson.ragllm.model.PdfFile;
 import org.handson.ragllm.repository.PdfRepository;
 import org.springframework.stereotype.Service;
 
-import java.io.ByteArrayInputStream;
+import java.util.List;
 
 @Service
 public class PdfTextExtractorService {
 
     private final PdfRepository pdfRepository;
+    private final PdfChunkService pdfChunkService;
+    private final PdfChunkStorageService chunkStorageService;
 
-    public PdfTextExtractorService(PdfRepository pdfRepository) {
+    public PdfTextExtractorService(
+            PdfRepository pdfRepository,
+            PdfChunkService pdfChunkService,
+            PdfChunkStorageService chunkStorageService
+    ) {
         this.pdfRepository = pdfRepository;
+        this.pdfChunkService = pdfChunkService;
+        this.chunkStorageService = chunkStorageService;
     }
 
     public String extractText(Long pdfId) {
         PdfFile pdf = pdfRepository.findById(pdfId)
                 .orElseThrow(() -> new RuntimeException("PDF not found: " + pdfId));
 
-        try (PDDocument document =
-                     PDDocument.load(new ByteArrayInputStream(pdf.getData()))) {
+        // כאן אתה משתמש ב־PDFBox או כל כלי אחר
+        String text = new String(pdf.getData()); // לשלב הבא: שימוש ב־PDFBox כדי לקרוא טקסט אמיתי
 
-            PDFTextStripper stripper = new PDFTextStripper();
-            return stripper.getText(document);
+        // פיצול ל־chunks ושמירה
+        List<String> chunks = pdfChunkService.splitTextIntoChunks(text);
+        chunkStorageService.saveChunks(pdfId, chunks);
 
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to extract text from PDF", e);
-        }
+        return text;
     }
 }

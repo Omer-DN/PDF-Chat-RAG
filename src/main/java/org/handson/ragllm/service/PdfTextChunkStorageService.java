@@ -15,6 +15,9 @@ public class PdfTextChunkStorageService {
         this.repository = repository;
     }
 
+    // =========================
+    // Save chunks to DB
+    // =========================
     public void saveChunks(Long pdfId, List<String> chunks) {
         for (int i = 0; i < chunks.size(); i++) {
             PdfTextChunk chunk = new PdfTextChunk(pdfId, chunks.get(i), i);
@@ -22,6 +25,9 @@ public class PdfTextChunkStorageService {
         }
     }
 
+    // =========================
+    // Retrieve chunks from DB
+    // =========================
     public List<PdfTextChunk> getChunks(Long pdfId) {
         return repository.findByPdfIdOrderByChunkNumberAsc(pdfId);
     }
