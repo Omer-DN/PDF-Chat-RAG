@@ -1,27 +1,34 @@
 package org.handson.ragllm.model;
-import com.pgvector.PGvector;
-import jakarta.persistence.*;
-import lombok.*;
 
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "pdf_files")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class PdfFileEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String fileName;
+    @Column(name = "filename", nullable = false)
+    private String filename;
 
+    @Lob
+    @Column(name = "data", nullable = false)
+    private byte[] data;
+
+    @Column(name = "uploaded_at", nullable = false)
     private LocalDateTime uploadedAt;
 
-    @Column(name = "embedding", columnDefinition = "vector(1536)")
-    private PGvector embedding; // נכון ל-pgvector
+    protected PdfFileEntity() {}
+
+    public PdfFileEntity(String filename, byte[] data, LocalDateTime uploadedAt) {
+        this.filename = filename;
+        this.data = data;
+        this.uploadedAt = uploadedAt;
+    }
+
+    public Long getId() { return id; }
+    public String getFilename() { return filename; }
 }
