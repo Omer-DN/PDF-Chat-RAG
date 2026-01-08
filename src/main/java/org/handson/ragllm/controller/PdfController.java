@@ -2,6 +2,7 @@ package org.handson.ragllm.controller;
 
 import org.handson.ragllm.model.PdfFile;
 import org.handson.ragllm.service.PdfFileService;
+import org.handson.ragllm.service.PdfTextChunkService;
 import org.handson.ragllm.service.PdfTextExtractorService;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -13,15 +14,20 @@ import java.util.Map;
 @RequestMapping("/api/pdf")
 public class PdfController {
 
+    private final PdfTextChunkService chunkService;
     private final PdfFileService pdfFileService;
     private final PdfTextExtractorService textExtractorService;
 
     public PdfController(
             PdfFileService pdfFileService,
-            PdfTextExtractorService textExtractorService
+            PdfTextExtractorService textExtractorService,
+            PdfTextChunkService chunkService
+
     ) {
         this.pdfFileService = pdfFileService;
         this.textExtractorService = textExtractorService;
+        this.chunkService = chunkService;
+
     }
 
     // =========================
@@ -51,6 +57,18 @@ public class PdfController {
                 "pdfId", pdfId,
                 "length", text.length(),
                 "text", text
+        );
+    }
+
+    @GetMapping("/{pdfId}/chunks")
+    public Map<String, Object> getPdfChunks(@PathVariable Long pdfId) {
+        String text = textExtractorService.extractText(pdfId);
+        var chunks = chunkService.splitTextIntoChunks(text);
+
+        return Map.of(
+                "pdfId", pdfId,
+                "numChunks", chunks.size(),
+                "chunks", chunks
         );
     }
 }
