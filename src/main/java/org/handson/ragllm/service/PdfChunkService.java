@@ -1,7 +1,6 @@
 package org.handson.ragllm.service;
 
 import org.springframework.stereotype.Service;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,10 +10,6 @@ public class PdfChunkService {
     private static final int CHUNK_SIZE = 500; // תווים לכל chunk
 
     public List<String> splitTextIntoChunks(String text) {
-        if (text == null || text.isBlank()) {
-            return new ArrayList<>();
-        }
-
         List<String> chunks = new ArrayList<>();
         int length = text.length();
         int start = 0;

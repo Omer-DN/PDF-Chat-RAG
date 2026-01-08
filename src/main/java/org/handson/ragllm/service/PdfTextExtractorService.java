@@ -11,25 +11,20 @@ import java.io.ByteArrayInputStream;
 @Service
 public class PdfTextExtractorService {
 
-    private final PdfRepository pdfRepository;
+    private final PdfRepository repository;
 
-    public PdfTextExtractorService(PdfRepository pdfFileRepository) {
-        this.pdfRepository = pdfFileRepository;
+    public PdfTextExtractorService(PdfRepository repository) {
+        this.repository = repository;
     }
 
     public String extractText(Long pdfId) {
-        PdfFile pdf = pdfRepository.findById(pdfId)
-                .orElseThrow(() -> new RuntimeException("PDF not found with id: " + pdfId));
-
+        PdfFile pdf = repository.findById(pdfId)
+                .orElseThrow(() -> new RuntimeException("PDF not found with id " + pdfId));
         try (PDDocument document = PDDocument.load(new ByteArrayInputStream(pdf.getData()))) {
             PDFTextStripper stripper = new PDFTextStripper();
-            String text = stripper.getText(document);
-
-            // ניקוי תווים מיותרים
-            return text.replaceAll("\\s+", " ").trim();
+            return stripper.getText(document);
         } catch (Exception e) {
-            e.printStackTrace();
-            return ""; // במקרה של שגיאה נחזיר מחרוזת ריקה
+            throw new RuntimeException("Failed to extract text from PDF", e);
         }
     }
 }
