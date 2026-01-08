@@ -1,12 +1,12 @@
 package org.handson.ragllm.controller;
 
 import org.handson.ragllm.model.PdfFile;
+import org.handson.ragllm.model.PdfTextChunk;
 import org.handson.ragllm.service.*;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -36,43 +36,44 @@ public class PdfController {
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Map<String, Object> uploadPdf(@RequestParam("file") MultipartFile file) throws Exception {
+        // 1️⃣ שמירת הקובץ
         PdfFile saved = pdfFileService.save(file);
+
+        // 2️⃣ חילוץ הטקסט
         String text = textExtractorService.extractText(saved.getId());
 
-        // Split into chunks
+        // 3️⃣ פיצול לטקסט chunks
         List<String> chunks = chunkService.splitTextIntoChunks(text);
 
-        // Save chunks
+        // 4️⃣ שמירת ה-chunks בבסיס נתונים
         chunkStorageService.saveChunks(saved.getId(), chunks);
 
-        // Compute and save embeddings
-        List<Long> chunkIds = chunkStorageService.getChunks(saved.getId())
-                .stream()
-                .map(c -> c.getId())
-                .toList();
-
-        for (Long chunkId : chunkIds) {
-            // Dummy embedding: for now fill with zeros (1536 dim)
-            float[] embedding = new float[1536];
-            embeddingService.saveEmbedding(chunkId, embedding);
+        // 5️⃣ יצירת embeddings ושמירה בבסיס נתונים
+        List<PdfTextChunk> storedChunks = chunkStorageService.getChunks(saved.getId());
+        for (PdfTextChunk chunk : storedChunks) {
+            // ליצירת embedding אמיתי בעתיד: float[] מ-Gemini
+            float[] embedding = new float[1536]; // dummy zeros כרגע
+            // המר float[] ל-byte[] לפני שמירה
+            byte[] embeddingBytes = embeddingService.floatArrayToByteArray(embedding);
+            embeddingService.saveEmbedding(chunk.getId(), embeddingBytes);
         }
 
         return Map.of(
                 "message", "PDF uploaded successfully with embeddings",
                 "pdfId", saved.getId(),
-                "filename", saved.getFilename()
+                "filename", saved.getFilename(),
+                "numChunks", storedChunks.size()
         );
     }
 
+
     @GetMapping("/{pdfId}/chunks")
     public Map<String, Object> getPdfChunks(@PathVariable Long pdfId) {
-        List<String> chunks = chunkService.splitTextIntoChunks(
-                textExtractorService.extractText(pdfId)
-        );
+        List<PdfTextChunk> storedChunks = chunkStorageService.getChunks(pdfId);
         return Map.of(
                 "pdfId", pdfId,
-                "numChunks", chunks.size(),
-                "chunks", chunks
+                "numChunks", storedChunks.size(),
+                "chunks", storedChunks.stream().map(PdfTextChunk::getText).toList()
         );
     }
 }
