@@ -6,6 +6,8 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -15,72 +17,62 @@ public class PdfController {
     private final PdfFileService pdfFileService;
     private final PdfTextExtractorService textExtractorService;
     private final PdfChunkService chunkService;
-    private final PdfTextChunkStorageService chunkStorageService; // ← הוספנו
+    private final PdfTextChunkStorageService chunkStorageService;
+    private final PdfChunkEmbeddingService embeddingService;
 
     public PdfController(
             PdfFileService pdfFileService,
             PdfTextExtractorService textExtractorService,
             PdfChunkService chunkService,
-            PdfTextChunkStorageService chunkStorageService // ← הוספנו
+            PdfTextChunkStorageService chunkStorageService,
+            PdfChunkEmbeddingService embeddingService
     ) {
         this.pdfFileService = pdfFileService;
         this.textExtractorService = textExtractorService;
         this.chunkService = chunkService;
-        this.chunkStorageService = chunkStorageService; // ← הוספנו
+        this.chunkStorageService = chunkStorageService;
+        this.embeddingService = embeddingService;
     }
 
-    // =========================
-    // Upload PDF
-    // =========================
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Map<String, Object> uploadPdf(@RequestParam("file") MultipartFile file) throws Exception {
-
         PdfFile saved = pdfFileService.save(file);
         String text = textExtractorService.extractText(saved.getId());
 
         // Split into chunks
-        var chunks = chunkService.splitTextIntoChunks(text);
+        List<String> chunks = chunkService.splitTextIntoChunks(text);
 
         // Save chunks
         chunkStorageService.saveChunks(saved.getId(), chunks);
 
+        // Compute and save embeddings
+        List<Long> chunkIds = chunkStorageService.getChunks(saved.getId())
+                .stream()
+                .map(c -> c.getId())
+                .toList();
+
+        for (Long chunkId : chunkIds) {
+            // Dummy embedding: for now fill with zeros (1536 dim)
+            float[] embedding = new float[1536];
+            embeddingService.saveEmbedding(chunkId, embedding);
+        }
+
         return Map.of(
-                "message", "PDF uploaded successfully",
+                "message", "PDF uploaded successfully with embeddings",
                 "pdfId", saved.getId(),
-                "filename", saved.getFilename(),
-                "numChunks", chunks.size()
+                "filename", saved.getFilename()
         );
     }
 
-    // =========================
-    // Extract Text (DEBUG)
-    // =========================
-    @GetMapping("/{pdfId}/text")
-    public Map<String, Object> getPdfText(@PathVariable Long pdfId) {
-
-        String text = textExtractorService.extractText(pdfId);
-
-        return Map.of(
-                "pdfId", pdfId,
-                "length", text.length(),
-                "text", text
-        );
-    }
-
-    // =========================
-    // Get Chunks (DEBUG)
-    // =========================
     @GetMapping("/{pdfId}/chunks")
     public Map<String, Object> getPdfChunks(@PathVariable Long pdfId) {
-
-        // שולף מה־DB את ה־chunks שמורים
-        var chunks = chunkStorageService.getChunks(pdfId);
-
+        List<String> chunks = chunkService.splitTextIntoChunks(
+                textExtractorService.extractText(pdfId)
+        );
         return Map.of(
                 "pdfId", pdfId,
                 "numChunks", chunks.size(),
-                "chunks", chunks.stream().map(c -> c.getText()).toList()
+                "chunks", chunks
         );
     }
-
 }
