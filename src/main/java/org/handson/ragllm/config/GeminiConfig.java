@@ -9,7 +9,9 @@ public class GeminiConfig {
     @Value("${gemini.api.key}")
     private String apiKey;
 
-    public String getApiKey() {
-        return apiKey;
-    }
+    @Value("${gemini.api.url}")
+    private String apiUrl;
+
+    public String getApiKey() { return apiKey; }
+    public String getApiUrl() { return apiUrl; }
 }

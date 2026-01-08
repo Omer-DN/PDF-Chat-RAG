@@ -4,6 +4,7 @@ import org.handson.ragllm.config.GeminiConfig;
 import org.handson.ragllm.model.PdfChunkEmbedding;
 import org.handson.ragllm.repository.PdfChunkEmbeddingRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import java.nio.ByteBuffer;
 
@@ -12,6 +13,7 @@ public class PdfChunkEmbeddingService {
 
     private final PdfChunkEmbeddingRepository repository;
     private final GeminiConfig geminiConfig;
+    private final WebClient webClient;
 
     public PdfChunkEmbeddingService(PdfChunkEmbeddingRepository repository, GeminiConfig geminiConfig) {
         this.repository = repository;
@@ -47,11 +49,10 @@ public class PdfChunkEmbeddingService {
     // =========================
     // קריאה עתידית ל-Gemini API
     // =========================
-    private float[] callGeminiApi(String text) {
-        String apiKey = geminiConfig.getApiKey();
-        // כאן נשלח את הטקסט ל-Gemini ונקבל embedding אמיתי
-        // כרגע placeholder
-        return new float[1536];
+    private static class GeminiResponse {
+        private float[] embedding;
+        public float[] getEmbedding() { return embedding; }
+        public void setEmbedding(float[] embedding) { this.embedding = embedding; }
     }
     public void saveEmbedding(Long chunkId, byte[] embeddingBytes) {
         PdfChunkEmbedding embedding = new PdfChunkEmbedding(chunkId, embeddingBytes);

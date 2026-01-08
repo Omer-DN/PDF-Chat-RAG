@@ -55,7 +55,8 @@ public class PdfController {
             float[] embedding = new float[1536]; // dummy zeros כרגע
             // המר float[] ל-byte[] לפני שמירה
             byte[] embeddingBytes = embeddingService.floatArrayToByteArray(embedding);
-            embeddingService.saveEmbedding(chunk.getId(), embeddingBytes);
+            embeddingService.createAndSaveEmbedding(chunk.getId(), chunk.getText());
+
         }
 
         return Map.of(
