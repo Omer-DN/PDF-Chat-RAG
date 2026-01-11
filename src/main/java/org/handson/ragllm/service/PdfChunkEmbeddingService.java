@@ -1,5 +1,6 @@
 package org.handson.ragllm.service;
 
+import org.handson.ragllm.client.GeminiClient;
 import org.handson.ragllm.embedding.EmbeddingClient;
 import org.handson.ragllm.model.PdfChunkEmbedding;
 import org.handson.ragllm.repository.PdfChunkEmbeddingRepository;
@@ -11,14 +12,17 @@ import java.nio.ByteBuffer;
 public class PdfChunkEmbeddingService {
 
     private final PdfChunkEmbeddingRepository repository;
-    private final EmbeddingClient embeddingClient;
+    private final GeminiClient geminiClient;
 
     public PdfChunkEmbeddingService(
             PdfChunkEmbeddingRepository repository,
-            EmbeddingClient embeddingClient
+            GeminiClient geminiClient
+
+
     ) {
         this.repository = repository;
-        this.embeddingClient = embeddingClient;
+        this.geminiClient = geminiClient;
+
     }
 
     // =========================
@@ -27,15 +31,13 @@ public class PdfChunkEmbeddingService {
     public void createAndSaveEmbedding(Long chunkId, String text) {
 
         // 1️⃣ יצירת embedding (דרך Client)
-        float[] embedding = embeddingClient.embed(text);
+        float[] embedding = geminiClient.getEmbedding(text);
 
         // 2️⃣ המרה ל-byte[]
         byte[] embeddingBytes = floatArrayToByteArray(embedding);
 
         // 3️⃣ שמירה ב-DB
-        PdfChunkEmbedding entity =
-                new PdfChunkEmbedding(chunkId, embeddingBytes);
-
+        PdfChunkEmbedding entity = new PdfChunkEmbedding(chunkId, embeddingBytes);
         repository.save(entity);
     }
 

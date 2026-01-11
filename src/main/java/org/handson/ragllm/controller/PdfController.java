@@ -36,27 +36,28 @@ public class PdfController {
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Map<String, Object> uploadPdf(@RequestParam("file") MultipartFile file) throws Exception {
+
         // 1️⃣ שמירת הקובץ
         PdfFile saved = pdfFileService.save(file);
 
-        // 2️⃣ חילוץ הטקסט
+        // 2️⃣ חילוץ טקסט
         String text = textExtractorService.extractText(saved.getId());
 
-        // 3️⃣ פיצול לטקסט chunks
+        // 3️⃣ פיצול ל-chunks
         List<String> chunks = chunkService.splitTextIntoChunks(text);
 
-        // 4️⃣ שמירת ה-chunks בבסיס נתונים
+        // 4️⃣ שמירת chunks
         chunkStorageService.saveChunks(saved.getId(), chunks);
 
-        // 5️⃣ יצירת embeddings ושמירה בבסיס נתונים
-        List<PdfTextChunk> storedChunks = chunkStorageService.getChunks(saved.getId());
-        for (PdfTextChunk chunk : storedChunks) {
-            // ליצירת embedding אמיתי בעתיד: float[] מ-Gemini
-            float[] embedding = new float[1536]; // dummy zeros כרגע
-            // המר float[] ל-byte[] לפני שמירה
-            byte[] embeddingBytes = embeddingService.floatArrayToByteArray(embedding);
-            embeddingService.createAndSaveEmbedding(chunk.getId(), chunk.getText());
+        // 5️⃣ יצירת embeddings (Service אחראי על הכול)
+        List<PdfTextChunk> storedChunks =
+                chunkStorageService.getChunks(saved.getId());
 
+        for (PdfTextChunk chunk : storedChunks) {
+            embeddingService.createAndSaveEmbedding(
+                    chunk.getId(),
+                    chunk.getText()
+            );
         }
 
         return Map.of(
@@ -67,14 +68,18 @@ public class PdfController {
         );
     }
 
-
     @GetMapping("/{pdfId}/chunks")
     public Map<String, Object> getPdfChunks(@PathVariable Long pdfId) {
-        List<PdfTextChunk> storedChunks = chunkStorageService.getChunks(pdfId);
+
+        List<PdfTextChunk> storedChunks =
+                chunkStorageService.getChunks(pdfId);
+
         return Map.of(
                 "pdfId", pdfId,
                 "numChunks", storedChunks.size(),
-                "chunks", storedChunks.stream().map(PdfTextChunk::getText).toList()
+                "chunks", storedChunks.stream()
+                        .map(PdfTextChunk::getText)
+                        .toList()
         );
     }
 }
