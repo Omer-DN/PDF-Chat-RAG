@@ -2,6 +2,7 @@ package org.handson.ragllm.controller;
 
 import org.handson.ragllm.model.PdfFile;
 import org.handson.ragllm.model.PdfTextChunk;
+import org.handson.ragllm.model.QuestionRequest;
 import org.handson.ragllm.service.*;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -37,49 +38,26 @@ public class PdfController {
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Map<String, Object> uploadPdf(@RequestParam("file") MultipartFile file) throws Exception {
 
-        // 1️⃣ שמירת הקובץ
         PdfFile saved = pdfFileService.save(file);
-
-        // 2️⃣ חילוץ טקסט
         String text = textExtractorService.extractText(saved.getId());
-
-        // 3️⃣ פיצול ל-chunks
         List<String> chunks = chunkService.splitTextIntoChunks(text);
 
-        // 4️⃣ שמירת chunks
-        chunkStorageService.saveChunks(saved.getId(), chunks);
-
-        // 5️⃣ יצירת embeddings (Service אחראי על הכול)
-        List<PdfTextChunk> storedChunks =
-                chunkStorageService.getChunks(saved.getId());
-
-        for (PdfTextChunk chunk : storedChunks) {
-            embeddingService.createAndSaveEmbedding(
-                    chunk.getId(),
-                    chunk.getText()
-            );
-        }
+        // שלב אחד שחוסך את כל ה-loop ב-controller
+        chunkStorageService.saveChunksWithEmbeddings(saved.getId(), chunks);
 
         return Map.of(
                 "message", "PDF uploaded successfully with embeddings",
                 "pdfId", saved.getId(),
-                "filename", saved.getFilename(),
-                "numChunks", storedChunks.size()
+                "numChunks", chunks.size()
         );
     }
 
-    @GetMapping("/{pdfId}/chunks")
-    public Map<String, Object> getPdfChunks(@PathVariable Long pdfId) {
+    @PostMapping("/{pdfId}/ask")
+    public Map<String, String> ask(
+            @PathVariable Long pdfId,
+            @RequestBody QuestionRequest request) { // שינוי כאן מ-Map ל-QuestionRequest
 
-        List<PdfTextChunk> storedChunks =
-                chunkStorageService.getChunks(pdfId);
-
-        return Map.of(
-                "pdfId", pdfId,
-                "numChunks", storedChunks.size(),
-                "chunks", storedChunks.stream()
-                        .map(PdfTextChunk::getText)
-                        .toList()
-        );
+        String answer = chunkStorageService.askQuestion(pdfId, request.getQuestion());
+        return Map.of("answer", answer);
     }
 }

@@ -5,7 +5,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.util.*;
 
@@ -17,25 +17,21 @@ public class GeminiClient {
 
     public GeminiClient(GeminiConfig config) {
         this.config = config;
-        // הדפסה לביקורת - תראה ב-Console אם זה מדפיס null או כתובת אמיתית
-        System.out.println("DEBUG: Gemini Base URL is: " + config.getBaseUrl());
-
         this.webClient = WebClient.builder()
                 .baseUrl(config.getBaseUrl() != null ? config.getBaseUrl() : "https://generativelanguage.googleapis.com")
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .build();
     }
 
-    /** שליפת embedding מ-Gemini */
+    /** * שליפת embedding מ-Gemini
+     * שים לב לשימוש ב-v1beta וב-embedContent
+     */
     public float[] getEmbedding(String text) {
         try {
-            // גוגל דורשת מבנה עטוף ב-content -> parts -> text
             Map<String, Object> requestBody = Map.of(
                     "model", "models/text-embedding-004",
                     "content", Map.of(
-                            "parts", List.of(
-                                    Map.of("text", text)
-                            )
+                            "parts", List.of(Map.of("text", text))
                     )
             );
 
@@ -48,7 +44,6 @@ public class GeminiClient {
                     .retrieve()
                     .bodyToMono(Map.class)
                     .map(response -> {
-                        // שליפת הוקטור מתוך התגובה
                         Map<String, Object> embeddingMap = (Map<String, Object>) response.get("embedding");
                         List<Number> values = (List<Number>) embeddingMap.get("values");
 
@@ -59,18 +54,26 @@ public class GeminiClient {
                         return fValues;
                     })
                     .block();
+        } catch (WebClientResponseException e) {
+            System.err.println("Gemini Embedding Error: " + e.getResponseBodyAsString());
+            return new float[768];
         } catch (Exception e) {
-            // הדפסת השגיאה המלאה לטרמינל כדי לראות מה גוגל אומרת ב-Body
-            System.err.println("Gemini Error: " + e.getMessage());
-            return new float[768]; // הגודל הסטנדרטי של מודל 004
+            System.err.println("General Embedding Error: " + e.getMessage());
+            return new float[768];
         }
     }
-    /** יצירת תשובה (Chat) */
+
+    /** * יצירת תשובה (Chat)
+     * שים לב לשימוש ב-v1 וב-generateContent
+     */
     public String generateAnswer(String question, String context) {
         try {
-            String promptText = "Context: " + context + "\n\nQuestion: " + question;
+            // בניית Prompt חזק שימנע הזיות (Hallucinations)
+            String promptText = String.format(
+                    "You are a professional assistant. Answer the question based ONLY on the provided context.\n\n" +
+                            "CONTEXT:\n%s\n\n" +
+                            "QUESTION:\n%s", context, question);
 
-            // מבנה JSON עבור Gemini Generate Content
             Map<String, Object> requestBody = Map.of(
                     "contents", List.of(
                             Map.of("parts", List.of(Map.of("text", promptText)))
@@ -79,19 +82,26 @@ public class GeminiClient {
 
             return webClient.post()
                     .uri(uriBuilder -> uriBuilder
+                            // שים לב: חייב v1beta עבור gemini-1.5-flash
                             .path("/v1beta/models/gemini-1.5-flash:generateContent")
                             .queryParam("key", config.getApiKey())
                             .build())
                     .bodyValue(requestBody)
+                    // ... המשך הקוד
                     .retrieve()
                     .bodyToMono(Map.class)
                     .map(response -> {
                         List<Map<String, Object>> candidates = (List<Map<String, Object>>) response.get("candidates");
+                        if (candidates == null || candidates.isEmpty()) return "No answer generated.";
+
                         Map<String, Object> content = (Map<String, Object>) candidates.get(0).get("content");
-                        List<Map<String, String>> parts = (List<Map<String, String>>) content.get("parts");
-                        return parts.get(0).get("text");
+                        List<Map<String, Object>> parts = (List<Map<String, Object>>) content.get("parts");
+                        return (String) parts.get(0).get("text");
                     })
                     .block();
+        } catch (WebClientResponseException e) {
+            System.err.println("Gemini Chat Error: " + e.getResponseBodyAsString());
+            return "Error from Gemini: " + e.getStatusText();
         } catch (Exception e) {
             return "Error: " + e.getMessage();
         }

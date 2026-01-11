@@ -11,14 +11,17 @@ public class PdfTextChunk {
     private Long id;
 
     @Column(nullable = false)
-    private Long pdfId; // מזהה PDF מקור
+    private Long pdfId;
 
-    @Lob
-    @Column(nullable = false)
-    private String text; // הטקסט של החלק
+    @Column(columnDefinition = "TEXT", nullable = false) // עדיף TEXT פשוט ב-Postgres על פני @Lob
+    private String text;
 
     @Column(nullable = false)
-    private int chunkNumber; // מספר Chunk
+    private int chunkNumber;
+
+    // הוספת עמודת הווקטור
+    @Column(columnDefinition = "vector(768)")
+    private float[] embedding;
 
     protected PdfTextChunk() {}
 
@@ -28,8 +31,12 @@ public class PdfTextChunk {
         this.chunkNumber = chunkNumber;
     }
 
+    // Getters & Setters
     public Long getId() { return id; }
     public Long getPdfId() { return pdfId; }
     public String getText() { return text; }
     public int getChunkNumber() { return chunkNumber; }
+
+    public float[] getEmbedding() { return embedding; }
+    public void setEmbedding(float[] embedding) { this.embedding = embedding; }
 }
