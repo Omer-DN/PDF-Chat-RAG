@@ -1,25 +1,24 @@
 package org.handson.ragllm.service;
 
-import org.springframework.beans.factory.annotation.Value;
+import org.handson.ragllm.client.GeminiClient;
+import org.handson.ragllm.config.GeminiConfig;
 import org.springframework.stereotype.Service;
 
 @Service
 public class GeminiEmbeddingService {
 
-    private final String apiKey;
+    private final GeminiClient geminiClient;
+    private final GeminiConfig geminiConfig;
 
-    public GeminiEmbeddingService(@Value("${gemini.api.key}") String apiKey) {
-        this.apiKey = apiKey;
+    // הזרקה דרך ה-Constructor - הדרך הנכונה ב-Spring
+    // זה מונע את השגיאה "Could not resolve placeholder"
+    public GeminiEmbeddingService(GeminiClient geminiClient, GeminiConfig geminiConfig) {
+        this.geminiClient = geminiClient;
+        this.geminiConfig = geminiConfig;
     }
 
-    // כאן יהיה הפונקציה שיוצרת embedding אמיתי
-    public byte[] createEmbedding(String text) {
-        // TODO: קריאה ל־Gemini API כדי לקבל embedding אמיתי
-        // בינתיים מחזיר dummy
-        return text.getBytes(); // להחליף ל float[] או byte[] מ-Gemini
-    }
-
-    public String getApiKey() {
-        return apiKey;
+    public float[] embedText(String text) {
+        // אנחנו קוראים לקליינט שבנינו, הוא כבר יודע להשתמש במפתח ובכתובת
+        return geminiClient.getEmbedding(text);
     }
 }
