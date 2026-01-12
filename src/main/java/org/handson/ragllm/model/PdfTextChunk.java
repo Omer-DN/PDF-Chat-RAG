@@ -1,6 +1,8 @@
 package org.handson.ragllm.model;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "pdf_chunks")
@@ -20,6 +22,7 @@ public class PdfTextChunk {
     private int chunkNumber;
 
     // הוספת עמודת הווקטור
+    @JdbcTypeCode(SqlTypes.ARRAY)
     @Column(columnDefinition = "vector(768)")
     private float[] embedding;
 
