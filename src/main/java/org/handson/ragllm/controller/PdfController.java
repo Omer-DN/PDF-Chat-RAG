@@ -1,7 +1,6 @@
 package org.handson.ragllm.controller;
 
 import org.handson.ragllm.model.PdfFile;
-import org.handson.ragllm.model.PdfTextChunk;
 import org.handson.ragllm.model.QuestionRequest;
 import org.handson.ragllm.service.*;
 import org.springframework.http.MediaType;
@@ -19,20 +18,17 @@ public class PdfController {
     private final PdfTextExtractorService textExtractorService;
     private final PdfChunkService chunkService;
     private final PdfTextChunkStorageService chunkStorageService;
-    private final PdfChunkEmbeddingService embeddingService;
 
     public PdfController(
             PdfFileService pdfFileService,
             PdfTextExtractorService textExtractorService,
             PdfChunkService chunkService,
-            PdfTextChunkStorageService chunkStorageService,
-            PdfChunkEmbeddingService embeddingService
+            PdfTextChunkStorageService chunkStorageService
     ) {
         this.pdfFileService = pdfFileService;
         this.textExtractorService = textExtractorService;
         this.chunkService = chunkService;
         this.chunkStorageService = chunkStorageService;
-        this.embeddingService = embeddingService;
     }
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
