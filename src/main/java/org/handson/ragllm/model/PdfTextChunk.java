@@ -1,6 +1,7 @@
 package org.handson.ragllm.model;
 
 import jakarta.persistence.*;
+import lombok.Getter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -8,38 +9,38 @@ import org.hibernate.type.SqlTypes;
 @Table(name = "pdf_chunks")
 public class PdfTextChunk {
 
+    // Getters
+    @Getter
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private Long pdfId;
+    // ב-Production עדיף לקשר לישות עצמה ולא רק ל-ID
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "pdf_id", nullable = false)
+    private PdfFile pdfFile;
 
-    @Column(columnDefinition = "TEXT", nullable = false) // עדיף TEXT פשוט ב-Postgres על פני @Lob
+    @Getter
+    @Column(columnDefinition = "TEXT", nullable = false)
     private String text;
 
     @Column(nullable = false)
     private int chunkNumber;
 
-    // הוספת עמודת הווקטור
     @JdbcTypeCode(SqlTypes.ARRAY)
     @Column(columnDefinition = "vector(768)")
     private float[] embedding;
 
     protected PdfTextChunk() {}
 
-    public PdfTextChunk(Long pdfId, String text, int chunkNumber) {
-        this.pdfId = pdfId;
+    // Constructor מלא שמתאים ל-Service שלנו
+    public PdfTextChunk(PdfFile pdfFile, String text, int chunkNumber, float[] embedding) {
+        this.pdfFile = pdfFile;
         this.text = text;
         this.chunkNumber = chunkNumber;
+        this.embedding = embedding;
     }
 
-    // Getters & Setters
-    public Long getId() { return id; }
-    public Long getPdfId() { return pdfId; }
-    public String getText() { return text; }
     public int getChunkNumber() { return chunkNumber; }
-
     public float[] getEmbedding() { return embedding; }
-    public void setEmbedding(float[] embedding) { this.embedding = embedding; }
 }

@@ -1,7 +1,6 @@
 package org.handson.ragllm.service;
 
 import org.handson.ragllm.client.GeminiClient;
-import org.handson.ragllm.embedding.EmbeddingClient;
 import org.handson.ragllm.model.PdfChunkEmbedding;
 import org.handson.ragllm.repository.PdfChunkEmbeddingRepository;
 import org.springframework.stereotype.Service;

@@ -43,14 +43,13 @@ Currently, embeddings are dummy placeholders (`byte[]`). Future updates will int
 ### 1. Run PostgreSQL with pgvector
 
 ```bash
-  docker run -d \
-  --name rag-postgres \
+docker run -d \
   -p 5432:5432 \
   -v postgresdata:/var/lib/postgresql/data \
-  -e POSTGRES_USER=postgres \
-  -e POSTGRES_PASSWORD=postgres \
   -e POSTGRES_DB=rag_llm \
-  ankane/pgvector:latest
+  -e POSTGRES_PASSWORD=postgres \
+  --name rag_postgres \
+  postgres
 
 ```
 

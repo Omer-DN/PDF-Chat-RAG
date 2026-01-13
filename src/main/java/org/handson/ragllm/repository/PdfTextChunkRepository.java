@@ -10,15 +10,20 @@ import java.util.List;
 @Repository
 public interface PdfTextChunkRepository extends JpaRepository<PdfTextChunk, Long> {
 
-    // המתודה שחסרה לך - חייבת להתאים לשם השדה ב-Entity
-    List<PdfTextChunk> findByPdfIdOrderByChunkNumberAsc(Long pdfId);
+    /**
+     * התיקון: אנחנו מחפשים את ה-Id בתוך שדה ה-pdfFile
+     * Spring יתרגם את זה ל: SELECT * FROM pdf_chunks WHERE pdf_id = ...
+     */
+    List<PdfTextChunk> findByPdfFile_IdOrderByChunkNumberAsc(Long pdfId);
 
-    // השאילתה לחיפוש דמיון (RAG) - מחזירה טקסט כדי למנוע שגיאות וקטורים
+    /**
+     * השאילתה הווקטורית ל-RAG
+     */
     @Query(value = """
         SELECT text
         FROM pdf_chunks
         WHERE pdf_id = :pdfId
-        ORDER BY embedding <-> CAST(:embedding AS vector)
+        ORDER BY embedding <=> CAST(:embedding AS vector)
         LIMIT :limit
         """, nativeQuery = true)
     List<String> findTopKTextByEmbedding(

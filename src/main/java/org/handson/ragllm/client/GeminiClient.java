@@ -1,79 +1,75 @@
 package org.handson.ragllm.client;
 
-import org.handson.ragllm.config.GeminiConfig;
-import org.springframework.http.MediaType;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.WebClient;
-import java.util.*;
+import org.springframework.web.client.RestTemplate;
+import java.util.List;
+import java.util.Map;
 
 @Component
 public class GeminiClient {
 
-    private final WebClient webClient;
-    private final GeminiConfig config;
+    @Value("${gemini.api.key}")
+    private String apiKey;
 
-    public GeminiClient(GeminiConfig config) {
-        this.config = config;
-        this.webClient = WebClient.builder().build();
+    private final RestTemplate restTemplate;
+    private static final String GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/";
+
+
+    public GeminiClient(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
     }
 
+    /**
+     * הפקת Embedding (וקטור) מטקסט
+     */
     public float[] getEmbedding(String text) {
+        String url = GEMINI_BASE_URL + "embedding-001:embedContent?key=" + apiKey;
+
+        Map<String, Object> request = Map.of(
+                "model", "models/embedding-001",
+                "content", Map.of("parts", List.of(Map.of("text", text)))
+        );
+
         try {
-            // שימוש ב-v1beta עם המפתח החדש
-            String url = "https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=" + config.getApiKey();
+            Map<String, Object> response = restTemplate.postForObject(url, request, Map.class);
+            // חילוץ המערך מהמבנה של Google: response.embedding.values
+            Map<String, Object> embeddingMap = (Map<String, Object>) response.get("embedding");
+            List<Double> values = (List<Double>) embeddingMap.get("values");
 
-            Map<String, Object> requestBody = Map.of(
-                    "model", "models/text-embedding-004",
-                    "content", Map.of("parts", List.of(Map.of("text", text)))
-            );
-
-            return webClient.post()
-                    .uri(url)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .bodyValue(requestBody)
-                    .retrieve()
-                    .bodyToMono(Map.class)
-                    .map(response -> {
-                        Map<String, Object> embedding = (Map<String, Object>) response.get("embedding");
-                        List<Double> values = (List<Double>) embedding.get("values");
-                        float[] fValues = new float[values.size()];
-                        for (int i = 0; i < values.size(); i++) fValues[i] = values.get(i).floatValue();
-                        return fValues;
-                    }).block();
+            float[] floatVector = new float[values.size()];
+            for (int i = 0; i < values.size(); i++) {
+                floatVector[i] = values.get(i).floatValue();
+            }
+            return floatVector;
         } catch (Exception e) {
-            return new float[768];
+            throw new RuntimeException("Failed to get embedding from Gemini: " + e.getMessage());
         }
     }
 
-    public String generateAnswer(String question, String context) {
+    /**
+     * יצירת טקסט (תשובה) מ-Prompt
+     */
+    public String generateContent(String prompt) {
+        String url = GEMINI_BASE_URL + "gemini-1.5-flash:generateContent?key=" + apiKey;
+
+        Map<String, Object> request = Map.of(
+                "contents", List.of(
+                        Map.of("parts", List.of(Map.of("text", prompt)))
+                )
+        );
+
         try {
-            String url = "https://generativelanguage.googleapis.com/v1/models/gemini-1.5:generateText?key=" + config.getApiKey();
+            Map<String, Object> response = restTemplate.postForObject(url, request, Map.class);
 
-            String promptText = String.format(
-                    "ענה על השאלה רק מתוך הטקסט הבא:\n\n--- PDF CHUNK ---\n%s\n------------------\n\nשאלה:\n%s\n\nאם אין תשובה בטקסט, אמור שאין מידע.",
-                    context, question
-            );
+            // חילוץ התשובה מהמבנה: candidates[0].content.parts[0].text
+            List<Map<String, Object>> candidates = (List<Map<String, Object>>) response.get("candidates");
+            Map<String, Object> content = (Map<String, Object>) candidates.get(0).get("content");
+            List<Map<String, Object>> parts = (List<Map<String, Object>>) content.get("parts");
 
-            Map<String, Object> requestBody = Map.of(
-                    "prompt", Map.of("text", promptText),
-                    "temperature", 0.0
-            );
-
-            return webClient.post()
-                    .uri(url)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .bodyValue(requestBody)
-                    .retrieve()
-                    .bodyToMono(Map.class)
-                    .map(response -> {
-                        List<Map> candidates = (List<Map>) response.get("candidates");
-                        return (String) candidates.get(0).get("output");
-                    })
-                    .block();
-
+            return (String) parts.get(0).get("text");
         } catch (Exception e) {
-            return "Error from Gemini: " + e.getMessage();
+            throw new RuntimeException("Failed to generate content from Gemini: " + e.getMessage());
         }
     }
-
 }
