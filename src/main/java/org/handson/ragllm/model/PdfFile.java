@@ -1,6 +1,8 @@
 package org.handson.ragllm.model;
 
 import jakarta.persistence.*;
+import lombok.Setter;
+
 import java.time.LocalDateTime;
 
 @Entity
@@ -21,6 +23,12 @@ public class PdfFile {
     @Column(name = "uploaded_at", nullable = false)
     private LocalDateTime uploadedAt;
 
+    // הקישור למשתמש - כל קובץ שייך למשתמש אחד
+    @Setter
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
+
     protected PdfFile() {}
 
     public PdfFile(String filename, byte[] data, LocalDateTime uploadedAt) {
@@ -29,8 +37,11 @@ public class PdfFile {
         this.uploadedAt = uploadedAt;
     }
 
+    // Getters and Setters
     public Long getId() { return id; }
     public String getFilename() { return filename; }
     public byte[] getData() { return data; }
     public LocalDateTime getUploadedAt() { return uploadedAt; }
+
+    public User getUser() { return user; }
 }
