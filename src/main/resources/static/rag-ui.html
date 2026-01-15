@@ -1,145 +1,174 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>RAG Cognitive Engine </title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini RAG System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Fira+Mono&display=swap');
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Fira Mono', monospace;
-            background: radial-gradient(circle at top, #001a33, #000033);
-            color: #fff;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-            overflow: hidden;
-        }
-        h1 { display:flex;align-items:center;gap:10px;margin-bottom:20px;color:#0ff;text-shadow:0 0 8px #0ff;}
-        input[type="text"], input[type="file"] {
-            padding:8px;border-radius:6px;border:1px solid #444;background:#222;color:#fff;width:300px;
-        }
-        button {padding:8px 12px;border-radius:6px;border:none;background:#0ff;color:#000;cursor:pointer;transition:.2s;margin-left:5px;}
-        button:hover {background:#0cc;}
-        pre {
-            background: rgba(0,0,50,0.85);
-            border: 2px solid #0ff;
-            border-radius: 20px;
-            padding: 30px;
-            width: 90%;
-            max-width: 1000px;
-            min-height: 350px;
-            max-height: 600px;
-            overflow-y: auto;
-            font-family: 'Fira Mono', monospace;
-            font-size: 18px;
-            line-height: 1.6;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            transition: all 0.3s;
-            position: relative;
-        }
-        .typing {
-            border-right: 3px solid #0ff;
-            animation: blink-caret 0.7s step-end infinite;
-        }
-        @keyframes blink-caret {
-            50% { border-color: transparent; }
-        }
-
-        .sparkles {position:absolute;left:-25px;top:5px;color:#0ff;animation:pulse 1s infinite;}
-        @keyframes pulse {0%,100%{opacity:0.2;transform:scale(1);}50%{opacity:1;transform:scale(1.3);}}
+        body { font-family: 'Assistant', sans-serif; }
+        .chat-container::-webkit-scrollbar { width: 6px; }
+        .chat-container::-webkit-scrollbar-thumb { background-color: #e2e8f0; border-radius: 10px; }
     </style>
 </head>
-<body>
+<body class="bg-slate-50 text-slate-900 overflow-hidden">
 
-<h1> RAG Cognitive Engine</h1>
+<div class="flex h-screen">
+    <aside class="w-64 bg-white border-l border-slate-200 flex flex-col shadow-sm">
+        <div class="p-6 border-b border-slate-200 flex items-center gap-3 font-bold text-blue-600 text-xl">
+            <i data-lucide="bot" class="w-8 h-8"></i>
+            <span>Gemini RAG</span>
+        </div>
 
-<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
-    <input type="file" id="pdfUpload" accept="application/pdf">
-    <button onclick="uploadFile()">Upload PDF</button>
+        <div class="flex-1 overflow-y-auto p-4">
+            <div class="text-xs font-semibold text-slate-400 uppercase mb-4 flex items-center gap-2">
+                <i data-lucide="history" class="w-4 h-4"></i> היסטוריית קבצים
+            </div>
+            <div id="fileList" class="space-y-2">
+                <div class="flex items-center gap-2 p-3 hover:bg-blue-50 rounded-xl cursor-pointer transition-all text-sm group">
+                    <i data-lucide="file-text" class="w-5 h-5 text-blue-500"></i>
+                    <span class="truncate font-medium">מסמך נוכחי (ID: 1)</span>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col relative">
+        <header class="bg-white/80 backdrop-blur-md border-b border-slate-200 p-4 sticky top-0 z-10">
+            <div class="max-w-4xl mx-auto flex items-center justify-between">
+                <h2 class="text-lg font-bold text-slate-700">צ'אט חכם על מסמכים</h2>
+                <div class="flex items-center gap-4">
+                    <label class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-full flex items-center gap-2 transition-all shadow-lg hover:shadow-blue-200 active:scale-95">
+                        <i data-lucide="upload" class="w-5 h-5"></i>
+                        <span id="uploadText">העלה PDF</span>
+                        <input type="file" id="fileInput" class="hidden" accept=".pdf" onchange="handleUpload(this)">
+                    </label>
+                </div>
+            </div>
+        </header>
+
+        <div id="chatWindow" class="flex-1 overflow-y-auto p-6 space-y-6 chat-container bg-slate-50/50">
+            <div class="max-w-3xl mx-auto" id="messageList">
+                <div class="flex justify-end mb-6 animate-in fade-in duration-500">
+                    <div class="flex gap-3 max-w-[80%] flex-row-reverse">
+                        <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 shadow-sm border border-blue-200">
+                            <i data-lucide="bot" class="w-6 h-6"></i>
+                        </div>
+                        <div class="p-4 rounded-2xl shadow-sm bg-blue-600 text-white leading-relaxed border border-blue-500">
+                            שלום! אני מוכן לעזור. העלה קובץ PDF ונתחיל לנתח אותו יחד.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer class="p-6 bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
+            <div class="max-w-3xl mx-auto flex gap-3 relative">
+                <input type="text" id="userInput"
+                       placeholder="שאל שאלה על תוכן המסמך..."
+                       class="flex-1 bg-slate-100 border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-blue-500/10 focus:bg-white focus:border-blue-500 outline-none transition-all text-lg shadow-inner"
+                       onkeypress="if(event.key === 'Enter') sendMessage()">
+
+                <button onclick="sendMessage()" class="bg-blue-600 text-white p-4 rounded-2xl hover:bg-blue-700 transition-all shadow-lg hover:shadow-blue-300 active:scale-90 group">
+                    <i data-lucide="send" class="w-6 h-6 group-hover:translate-x-[-2px] transition-transform"></i>
+                </button>
+            </div>
+        </footer>
+    </main>
 </div>
-
-<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
-    <input type="text" id="question" placeholder="Ask something…">
-    <button onclick="askQuestion()">Ask</button>
-    <button onclick="resetUI()" style="background:#f55;color:#fff;">Reset</button>
-</div>
-
-<pre id="answer"><span class="sparkles">✨</span></pre>
 
 <script>
-    let pdfId = null;
-    let uploaded = false;
-    let fileName = '';
+    // אתחול אייקונים
+    lucide.createIcons();
 
-    function uploadFile() {
-        const fileInput = document.getElementById("pdfUpload");
-        const file = fileInput.files[0];
-        if(!file) return alert("Select a PDF");
+    // פונקציית העלאת קובץ
+    async function handleUpload(input) {
+        const file = input.files[0];
+        if (!file) return;
 
-        fileName = file.name.toLowerCase(); // לשם בדיקה בדמו
-        uploaded = true;
-        pdfId = 1; // בדמו, אפשר להשתמש ב-ID קבוע
+        const uploadText = document.getElementById('uploadText');
+        uploadText.innerText = 'מעלה...';
 
-        // בדמו אין צורך לשלוח ל-backend אמיתי, מחזירים הודעה
-        document.getElementById("answer").textContent = `File "${file.name}" uploaded. Ready to ask questions!`;
-    }
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('userId', '1');
 
-    function askQuestion() {
-        const question = document.getElementById("question").value;
-        const answerEl = document.getElementById("answer");
-
-        if(!uploaded) return alert("Upload a PDF first!");
-        if(!question.trim()) return;
-
-        answerEl.innerHTML = "<span class='sparkles'>✨</span> Thinking…";
-
-        // דמו של שאלות ותשובות לפי שם הקובץ
-        setTimeout(() => {
-            let answer = "No answer available";
-
-            if(fileName.includes("harry")) {
-                if(question.toLowerCase().includes("ספר לי על הארי פוטר")) {
-                    answer = "הארי פוטר הוא ילד קסום שגדל בעולם הקסם והפך לגיבור בסדרת ספרי הארי פוטר.";
-                } else if(question.toLowerCase().includes("מול מה התמודד הארי")) {
-                    answer = "הארי התמודד מול כוחות הרשע, בעיקר וולדמורט, ועם אתגרים שונים בבית הספר והעולם הקסום.";
-                } else if(question.toLowerCase().includes("איפה הארי למד")) {
-                    answer = "הארי למד בבית הספר הוגוורטס לקסמים, בית ספר קסום עם מחלקות שונות ושיעורי קסמים.";
-                }
-            } else if(fileName.includes("omer")) {
-                if(question.toLowerCase().includes("מה עשה עומר בעבודה")) {
-                    answer = "עומר עבד בתחום הפיתוח, בעיקר Backend, ועסק בפרויקטים עם נתונים ומודלים.";
-                } else if(question.includes("פרויקט משמעותי")) {
-                    answer = "עומר עבד על פרויקט RAG שבו יצר chunks, שמר אותם ב-PostgreSQL, והתחבר באמצעות Gemini key לקבלת תשובות.";
-                } else if(question.toLowerCase().includes("לאיזה משרה")) {
-                    answer = "אני הייתי לוקח אותו למשרת Backend Developer או Data Engineer.";
-                }
-            } else if(fileName.includes("algorithm")) {
-                if(question.toLowerCase().includes("כמה סוגי מיון")) {
-                    answer = "קיימים מספר סוגי מיון נפוצים: Bubble Sort, Merge Sort, Quick Sort ועוד.";
-                } else if(question.toLowerCase().includes("איך הכי כדאי למיין מילים")) {
-                    answer = "הכי כדאי למיין מילים לפי Merge Sort או Quick Sort, כי הם מהירים גם על רשימות גדולות.";
-                } else if(question.toLowerCase().includes("השוואה זמן ריצה")) {
-                    answer = "זמן ריצה: Bubble Sort: O(n²), Merge Sort: O(n log n)";
-                }
+        try {
+            const response = await fetch('http://localhost:8080/api/pdf/upload', {
+                method: 'POST',
+                body: formData
+            });
+            if (response.ok) {
+                alert('הקובץ הועלה בהצלחה! השרת מעבד אותו ברקע.');
             }
-
-            answerEl.textContent = answer;
-        }, 800); // אפקט Thinking
+        } catch (err) {
+            console.error(err);
+            alert('שגיאה בתקשורת עם השרת');
+        } finally {
+            uploadText.innerText = 'העלה PDF';
+        }
     }
 
-    function resetUI() {
-        document.getElementById("pdfUpload").value = "";
-        document.getElementById("question").value = "";
-        document.getElementById("answer").textContent = "";
-        uploaded = false;
-        fileName = '';
-        pdfId = null;
+    // פונקציית שליחת הודעה
+    async function sendMessage() {
+        const input = document.getElementById('userInput');
+        const messageList = document.getElementById('messageList');
+        const question = input.value.trim();
+        if (!question) return;
+
+        // הוספת הודעת משתמש למסך
+        const userHtml = `
+                <div class="flex justify-start mb-6">
+                    <div class="flex gap-3 max-w-[80%]">
+                        <div class="w-10 h-10 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center shrink-0 border border-slate-300">
+                            <i data-lucide="user" class="w-6 h-6"></i>
+                        </div>
+                        <div class="p-4 rounded-2xl shadow-sm bg-white border border-slate-200 text-slate-800 leading-relaxed">
+                            ${question}
+                        </div>
+                    </div>
+                </div>`;
+        messageList.innerHTML += userHtml;
+        input.value = '';
+        lucide.createIcons();
+
+        // גלילה למטה
+        const chatWindow = document.getElementById('chatWindow');
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+
+        // הצגת "חושב..."
+        const loadingId = 'loading-' + Date.now();
+        messageList.innerHTML += `<div id="${loadingId}" class="flex justify-end mb-6 animate-pulse text-slate-400 text-sm">Gemini חושב...</div>`;
+
+        try {
+            const response = await fetch(`http://localhost:8080/api/rag/ask?pdfId=1&userId=1&question=${encodeURIComponent(question)}`, {
+                method: 'POST'
+            });
+            const answer = await response.text();
+
+            document.getElementById(loadingId).remove();
+
+            const botHtml = `
+                    <div class="flex justify-end mb-6">
+                        <div class="flex gap-3 max-w-[80%] flex-row-reverse">
+                            <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 border border-blue-200 shadow-sm">
+                                <i data-lucide="bot" class="w-6 h-6"></i>
+                            </div>
+                            <div class="p-4 rounded-2xl shadow-sm bg-blue-600 text-white leading-relaxed border border-blue-500 shadow-md">
+                                ${answer}
+                            </div>
+                        </div>
+                    </div>`;
+            messageList.innerHTML += botHtml;
+            lucide.createIcons();
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+
+        } catch (err) {
+            document.getElementById(loadingId).innerText = 'שגיאה בחיבור לשרת.';
+        }
     }
 </script>
-
 </body>
 </html>

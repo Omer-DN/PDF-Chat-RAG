@@ -1,7 +1,6 @@
 package org.handson.ragllm.controller;
 
 import org.handson.ragllm.model.PdfFile;
-import org.handson.ragllm.model.QuestionRequest;
 import org.handson.ragllm.service.*;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -10,6 +9,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import java.util.Map;
 
+@CrossOrigin(origins = "*") // מאפשר ל-HTML לגשת לשרת
 @RestController
 @RequestMapping("/api/pdf")
 public class PdfController {
@@ -17,57 +17,41 @@ public class PdfController {
     private final PdfFileService pdfFileService;
     private final PdfTextExtractorService textExtractorService;
     private final PdfChunkService chunkService;
-    private final PdfTextChunkStorageService chunkStorageService;
+    private final RagService ragService;
 
     public PdfController(
             PdfFileService pdfFileService,
             PdfTextExtractorService textExtractorService,
             PdfChunkService chunkService,
-            PdfTextChunkStorageService chunkStorageService
+            RagService ragService
     ) {
         this.pdfFileService = pdfFileService;
         this.textExtractorService = textExtractorService;
         this.chunkService = chunkService;
-        this.chunkStorageService = chunkStorageService;
+        this.ragService = ragService;
     }
 
-    /**
-     * העלאת קובץ ושיוכו למשתמש.
-     * שינוי: הוספת @RequestParam Long userId
-     */
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Map<String, Object> uploadPdf(
             @RequestParam("file") MultipartFile file,
             @RequestParam("userId") Long userId) throws Exception {
 
-        // שמירת הקובץ מקושר למשתמש
+        // 1. שמירת פרטי הקובץ ב-DB
         PdfFile saved = pdfFileService.save(file, userId);
 
+        // 2. חילוץ טקסט
         String text = textExtractorService.extractText(saved.getId());
+
+        // 3. חלוקה ל-Chunks
         List<String> chunks = chunkService.splitTextIntoChunks(text);
 
-        // שמירת ה-chunks עם embeddings
-        chunkStorageService .saveChunksWithEmbeddings(saved.getId(), chunks);
+        // 4. יצירת וקטורים (Embeddings) ושמירה ב-Vector Store
+        ragService.saveChunksWithEmbeddings(saved.getId(), chunks);
 
         return Map.of(
-                "message", "PDF uploaded successfully with embeddings for user: " + userId,
+                "message", "PDF uploaded and processed successfully",
                 "pdfId", saved.getId(),
                 "numChunks", chunks.size()
         );
-    }
-
-    /**
-     * שאילת שאלה ושמירה בהיסטוריה.
-     * שינוי: ה-request יכיל כעת גם את ה-userId
-     */
-    @PostMapping("/{pdfId}/ask")
-    public Map<String, String> ask(
-            @PathVariable Long pdfId,
-            @RequestBody QuestionRequest request) {
-
-        // אנחנו מעבירים את ה-userId ל-service כדי שיוכל לשמור את ההיסטוריה
-        String answer = chunkStorageService.askQuestion(pdfId, request.getQuestion(), request.getUserId());
-
-        return Map.of("answer", answer);
     }
 }

@@ -7,6 +7,8 @@ import org.handson.ragllm.repository.PdfRepository;
 import org.handson.ragllm.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.text.PDFTextStripper;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -16,41 +18,44 @@ public class PdfFileService {
 
     private final PdfRepository repository;
     private final UserRepository userRepository;
+    private final GeminiEmbeddingService embeddingService;
+    private final PdfChunkService chunkService;
 
-    public PdfFileService(PdfRepository repository, UserRepository userRepository) {
+    public PdfFileService(PdfRepository repository, UserRepository userRepository,
+                          GeminiEmbeddingService embeddingService, PdfChunkService chunkService) {
         this.repository = repository;
         this.userRepository = userRepository;
+        this.embeddingService = embeddingService;
+        this.chunkService = chunkService;
     }
 
-    /**
-     * שמירת קובץ ושיוכו למשתמש ספציפי.
-     * הערה: הסרנו את repository.deleteAll() כדי לאפשר שמירת היסטוריה.
-     */
     @Transactional
     public PdfFile save(MultipartFile file, Long userId) throws IOException {
-
-        // שליפת המשתמש מהדאטה-בייס
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // יצירת אובייקט הקובץ
-        PdfFile pdf = new PdfFile(
-                file.getOriginalFilename(),
-                file.getBytes(),
-                LocalDateTime.now()
-        );
-
-        // קישור הקובץ למשתמש
+        PdfFile pdf = new PdfFile(file.getOriginalFilename(), file.getBytes(), LocalDateTime.now());
         pdf.setUser(user);
+        PdfFile savedPdf = repository.save(pdf);
 
-        // שמירה בדאטה-בייס
-        return repository.save(pdf);
+        String fullText = extractTextFromPdf(file.getBytes());
+
+        // שימוש ב-PdfChunkService החדש שלנו
+        java.util.List<String> textChunks = chunkService.splitTextIntoChunks(fullText);
+
+        for (int i = 0; i < textChunks.size(); i++) {
+            String text = textChunks.get(i);
+            float[] vector = embeddingService.embedText(text);
+            chunkService.saveChunk(text, vector, savedPdf, i); // עכשיו זה יעבוד!
+        }
+
+        return savedPdf;
     }
 
-    /**
-     * שליפת כל הקבצים השייכים למשתמש מסוים
-     */
-    public java.util.List<PdfFile> getFilesByUser(Long userId) {
-        return repository.findByUserId(userId);
+    private String extractTextFromPdf(byte[] data) throws IOException {
+        try (PDDocument document = PDDocument.load(data)) {
+            PDFTextStripper stripper = new PDFTextStripper();
+            return stripper.getText(document);
+        }
     }
 }
