@@ -29,26 +29,6 @@ public class RagService {
     }
 
     @Transactional
-    public void saveChunksWithEmbeddings(Long pdfId, List<String> chunks) {
-        PdfFile pdfFile = pdfRepository.findById(pdfId)
-                .orElseThrow(() -> new RuntimeException("PDF not found"));
-
-        System.out.println("Starting embeddings for " + chunks.size() + " chunks...");
-
-        for (int i = 0; i < chunks.size(); i++) {
-            String text = chunks.get(i);
-            float[] embedding = geminiApiService.getEmbedding(text); // כאן קורה החיבור לגוגל
-
-            if (embedding != null) {
-                System.out.println("מנסה לשמור ב-DB צ'אנק מספר: " + i);
-                PdfTextChunk chunkEntity = new PdfTextChunk(pdfFile, text, i, embedding);
-                chunkRepository.save(chunkEntity);
-            }
-        }
-        System.out.println("✅ All chunks saved to database.");
-    }
-
-    @Transactional
     public String askQuestion(Long pdfId, String question, Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));

@@ -15,20 +15,9 @@ import java.util.Map;
 public class PdfController {
 
     private final PdfFileService pdfFileService;
-    private final PdfTextExtractorService textExtractorService;
-    private final PdfChunkService chunkService;
-    private final RagService ragService;
 
-    public PdfController(
-            PdfFileService pdfFileService,
-            PdfTextExtractorService textExtractorService,
-            PdfChunkService chunkService,
-            RagService ragService
-    ) {
+    public PdfController(PdfFileService pdfFileService) {
         this.pdfFileService = pdfFileService;
-        this.textExtractorService = textExtractorService;
-        this.chunkService = chunkService;
-        this.ragService = ragService;
     }
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -36,22 +25,16 @@ public class PdfController {
             @RequestParam("file") MultipartFile file,
             @RequestParam("userId") Long userId) throws Exception {
 
+        // PdfFileService.save() כבר עושה הכל:
         // 1. שמירת פרטי הקובץ ב-DB
-        PdfFile saved = pdfFileService.save(file, userId);
-
-        // 2. חילוץ טקסט
-        String text = textExtractorService.extractText(saved.getId());
-
+        // 2. חילוץ טקסט מה-PDF
         // 3. חלוקה ל-Chunks
-        List<String> chunks = chunkService.splitTextIntoChunks(text);
-
-        // 4. יצירת וקטורים (Embeddings) ושמירה ב-Vector Store
-        ragService.saveChunksWithEmbeddings(saved.getId(), chunks);
+        // 4. יצירת embeddings ושמירה ב-pdf_text_chunks
+        PdfFile saved = pdfFileService.save(file, userId);
 
         return Map.of(
                 "message", "PDF uploaded and processed successfully",
-                "pdfId", saved.getId(),
-                "numChunks", chunks.size()
+                "pdfId", saved.getId()
         );
     }
 }
