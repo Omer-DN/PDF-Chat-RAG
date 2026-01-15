@@ -8,7 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 @Service
-public class PdfTextChunkStorageService {
+public class RagService {
 
     private final PdfRepository pdfRepository;
     private final PdfTextChunkRepository chunkRepository;
@@ -16,11 +16,11 @@ public class PdfTextChunkStorageService {
     private final UserRepository userRepository; // הוסף
     private final QuestionHistoryRepository historyRepository; // הוסף
 
-    public PdfTextChunkStorageService(PdfRepository pdfRepository,
-                                      PdfTextChunkRepository chunkRepository,
-                                      GeminiApiService geminiApiService,
-                                      UserRepository userRepository,
-                                      QuestionHistoryRepository historyRepository) {
+    public RagService(PdfRepository pdfRepository,
+                      PdfTextChunkRepository chunkRepository,
+                      GeminiApiService geminiApiService,
+                      UserRepository userRepository,
+                      QuestionHistoryRepository historyRepository) {
         this.pdfRepository = pdfRepository;
         this.chunkRepository = chunkRepository;
         this.geminiApiService = geminiApiService;
