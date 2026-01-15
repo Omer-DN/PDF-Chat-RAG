@@ -11,12 +11,10 @@ import java.util.List;
 public class PdfChunkService {
 
     private final PdfTextChunkRepository chunkRepository;
-    private final GeminiEmbeddingService embeddingService;
     private static final int CHUNK_SIZE = 1000; // הגדלנו מעט לביצועים טובים יותר
 
-    public PdfChunkService(PdfTextChunkRepository chunkRepository, GeminiEmbeddingService embeddingService) {
+    public PdfChunkService(PdfTextChunkRepository chunkRepository) {
         this.chunkRepository = chunkRepository;
-        this.embeddingService = embeddingService;
     }
 
     // מתודה 1: פיצול טקסט

@@ -18,11 +18,11 @@ public class PdfFileService {
 
     private final PdfRepository repository;
     private final UserRepository userRepository;
-    private final GeminiEmbeddingService embeddingService;
+    private final GeminiApiService embeddingService;
     private final PdfChunkService chunkService;
 
     public PdfFileService(PdfRepository repository, UserRepository userRepository,
-                          GeminiEmbeddingService embeddingService, PdfChunkService chunkService) {
+                          GeminiApiService embeddingService, PdfChunkService chunkService) {
         this.repository = repository;
         this.userRepository = userRepository;
         this.embeddingService = embeddingService;
@@ -45,7 +45,7 @@ public class PdfFileService {
 
         for (int i = 0; i < textChunks.size(); i++) {
             String text = textChunks.get(i);
-            float[] vector = embeddingService.embedText(text);
+            float[] vector = embeddingService.getEmbedding(text);
             chunkService.saveChunk(text, vector, savedPdf, i); // עכשיו זה יעבוד!
         }
 

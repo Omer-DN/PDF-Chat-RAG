@@ -24,6 +24,7 @@ public class GeminiClient {
      * הפקת Embedding (וקטור) מטקסט
      */
     public float[] getEmbedding(String text) {
+        // תיקון ה-URL: הסרנו את ה-models/ המיותר כי הוא כבר נמצא ב-GEMINI_BASE_URL
         String url = GEMINI_BASE_URL + "embedding-001:embedContent?key=" + apiKey;
 
         Map<String, Object> request = Map.of(
@@ -32,8 +33,13 @@ public class GeminiClient {
         );
 
         try {
+            System.out.println("שולח בקשת Embedding לגוגל...");
             Map<String, Object> response = restTemplate.postForObject(url, request, Map.class);
-            // חילוץ המערך מהמבנה של Google: response.embedding.values
+
+            if (response == null || !response.containsKey("embedding")) {
+                throw new RuntimeException("תגובה ריקה מגוגל - וודא שמפתח ה-API תקין");
+            }
+
             Map<String, Object> embeddingMap = (Map<String, Object>) response.get("embedding");
             List<Double> values = (List<Double>) embeddingMap.get("values");
 
@@ -41,8 +47,11 @@ public class GeminiClient {
             for (int i = 0; i < values.size(); i++) {
                 floatVector[i] = values.get(i).floatValue();
             }
+
+            System.out.println("✅ וקטור נוצר בהצלחה! אורך: " + floatVector.length);
             return floatVector;
         } catch (Exception e) {
+            System.err.println("❌ שגיאה בשליחה לגוגל: " + e.getMessage());
             throw new RuntimeException("Failed to get embedding from Gemini: " + e.getMessage());
         }
     }
