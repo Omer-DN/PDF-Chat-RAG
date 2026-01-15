@@ -46,7 +46,7 @@ public class PdfFileService {
         for (int i = 0; i < textChunks.size(); i++) {
             String text = textChunks.get(i);
             float[] vector = embeddingService.getEmbedding(text);
-            chunkService.saveChunk(text, vector, savedPdf, i); // עכשיו זה יעבוד!
+            chunkService.saveChunk(text, vector, savedPdf, i);
         }
 
         return savedPdf;

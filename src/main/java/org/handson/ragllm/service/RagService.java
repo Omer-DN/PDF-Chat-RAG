@@ -40,6 +40,7 @@ public class RagService {
             float[] embedding = geminiApiService.getEmbedding(text); // כאן קורה החיבור לגוגל
 
             if (embedding != null) {
+                System.out.println("מנסה לשמור ב-DB צ'אנק מספר: " + i);
                 PdfTextChunk chunkEntity = new PdfTextChunk(pdfFile, text, i, embedding);
                 chunkRepository.save(chunkEntity);
             }
