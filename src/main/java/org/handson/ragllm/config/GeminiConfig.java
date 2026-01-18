@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Configuration;
 public class GeminiConfig {
     private String apiKey;
     private String baseUrl;
-    private String generateModel = "gemini-1.5-flash"; // מודל ברירת מחדל ל-generateContent
+    private String generateModel = "gemini-2.5-flash"; // מודל ברירת מחדל ל-generateContent
     private String embeddingModel = "text-embedding-004"; // מודל ל-embeddings
     private String apiVersion = "v1beta"; // גרסת API - v1 או v1beta
     
