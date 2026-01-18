@@ -3,172 +3,464 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gemini RAG System</title>
+    <title>Gemini RAG System - AI Document Assistant</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Assistant', sans-serif; }
-        .chat-container::-webkit-scrollbar { width: 6px; }
-        .chat-container::-webkit-scrollbar-thumb { background-color: #e2e8f0; border-radius: 10px; }
+        * {
+            font-family: 'Assistant', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #4facfe 75%, #00f2fe 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+
+        .glass-strong {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+
+        .chat-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-container::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        .chat-container::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+        }
+
+        .chat-container::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+
+        .message-enter {
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .pulse-ring {
+            animation: pulse-ring 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse-ring {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .upload-area {
+            transition: all 0.3s ease;
+        }
+
+        .upload-area:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 40px rgba(102, 126, 234, 0.4);
+        }
+
+        .message-bubble {
+            animation: messagePop 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        @keyframes messagePop {
+            0% {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.05);
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-900 overflow-hidden">
+<body class="overflow-hidden">
 
 <div class="flex h-screen">
-    <aside class="w-64 bg-white border-l border-slate-200 flex flex-col shadow-sm">
-        <div class="p-6 border-b border-slate-200 flex items-center gap-3 font-bold text-blue-600 text-xl">
-            <i data-lucide="bot" class="w-8 h-8"></i>
-            <span>Gemini RAG</span>
+    <!-- Sidebar -->
+    <aside class="w-72 glass-strong border-l border-white/20 flex flex-col shadow-2xl">
+        <div class="p-6 border-b border-slate-200/50 flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+                <i data-lucide="sparkles" class="w-7 h-7 text-white"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-xl gradient-text">Gemini RAG</h1>
+                <p class="text-xs text-slate-500">AI Document Assistant</p>
+            </div>
         </div>
 
-        <div class="flex-1 overflow-y-auto p-4">
-            <div class="text-xs font-semibold text-slate-400 uppercase mb-4 flex items-center gap-2">
-                <i data-lucide="history" class="w-4 h-4"></i> היסטוריית קבצים
+        <div class="flex-1 overflow-y-auto p-4 chat-container">
+            <div class="text-xs font-semibold text-slate-500 uppercase mb-4 flex items-center gap-2">
+                <i data-lucide="file-text" class="w-4 h-4"></i> מסמכים פעילים
             </div>
             <div id="fileList" class="space-y-2">
-                <div class="flex items-center gap-2 p-3 hover:bg-blue-50 rounded-xl cursor-pointer transition-all text-sm group">
-                    <i data-lucide="file-text" class="w-5 h-5 text-blue-500"></i>
-                    <span class="truncate font-medium">מסמך נוכחי (ID: 1)</span>
+                <div class="text-sm text-slate-400 text-center py-8" id="noFilesMessage">
+                    עדיין לא הועלו קבצים
                 </div>
+            </div>
+        </div>
+
+        <div class="p-4 border-t border-slate-200/50">
+            <div class="text-xs text-slate-500 text-center">
+                Powered by <span class="font-bold gradient-text">Google Gemini</span>
             </div>
         </div>
     </aside>
 
+    <!-- Main Content -->
     <main class="flex-1 flex flex-col relative">
-        <header class="bg-white/80 backdrop-blur-md border-b border-slate-200 p-4 sticky top-0 z-10">
-            <div class="max-w-4xl mx-auto flex items-center justify-between">
-                <h2 class="text-lg font-bold text-slate-700">צ'אט חכם על מסמכים</h2>
-                <div class="flex items-center gap-4">
-                    <label class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-full flex items-center gap-2 transition-all shadow-lg hover:shadow-blue-200 active:scale-95">
-                        <i data-lucide="upload" class="w-5 h-5"></i>
-                        <span id="uploadText">העלה PDF</span>
-                        <input type="file" id="fileInput" class="hidden" accept=".pdf" onchange="handleUpload(this)">
-                    </label>
+        <!-- Header -->
+        <header class="glass-strong border-b border-white/20 p-5 sticky top-0 z-10 shadow-lg">
+            <div class="max-w-5xl mx-auto flex items-center justify-between">
+                <div>
+                    <h2 class="text-2xl font-bold gradient-text">צ'אט חכם על מסמכים</h2>
+                    <p class="text-sm text-slate-600 mt-1" id="currentFileInfo">בחר או העלה קובץ PDF להתחלה</p>
                 </div>
+                <label class="cursor-pointer upload-area bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-xl flex items-center gap-3 transition-all shadow-lg font-semibold">
+                    <i data-lucide="upload" class="w-5 h-5"></i>
+                    <span id="uploadText">העלה PDF</span>
+                    <input type="file" id="fileInput" class="hidden" accept=".pdf" onchange="handleUpload(this)">
+                </label>
             </div>
         </header>
 
-        <div id="chatWindow" class="flex-1 overflow-y-auto p-6 space-y-6 chat-container bg-slate-50/50">
-            <div class="max-w-3xl mx-auto" id="messageList">
-                <div class="flex justify-end mb-6 animate-in fade-in duration-500">
-                    <div class="flex gap-3 max-w-[80%] flex-row-reverse">
-                        <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 shadow-sm border border-blue-200">
-                            <i data-lucide="bot" class="w-6 h-6"></i>
+        <!-- Chat Window -->
+        <div id="chatWindow" class="flex-1 overflow-y-auto p-6 space-y-6 chat-container">
+            <div class="max-w-4xl mx-auto" id="messageList">
+                <div class="flex justify-end mb-6 message-enter">
+                    <div class="flex gap-4 max-w-[85%] flex-row-reverse">
+                        <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 text-white flex items-center justify-center shrink-0 shadow-lg border-2 border-white/20">
+                            <i data-lucide="sparkles" class="w-7 h-7"></i>
                         </div>
-                        <div class="p-4 rounded-2xl shadow-sm bg-blue-600 text-white leading-relaxed border border-blue-500">
-                            שלום! אני מוכן לעזור. העלה קובץ PDF ונתחיל לנתח אותו יחד.
+                        <div class="p-5 rounded-3xl shadow-xl bg-gradient-to-br from-blue-600 to-purple-600 text-white leading-relaxed border border-white/20 message-bubble">
+                            <div class="flex items-center gap-2 mb-2">
+                                <i data-lucide="bot" class="w-4 h-4"></i>
+                                <span class="text-xs font-semibold opacity-90">Gemini Assistant</span>
+                            </div>
+                            שלום! 👋 אני עוזר AI חכם שמבין מסמכים. העלה קובץ PDF ואני אוכל לענות על שאלות על התוכן שלו.
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <footer class="p-6 bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
-            <div class="max-w-3xl mx-auto flex gap-3 relative">
-                <input type="text" id="userInput"
-                       placeholder="שאל שאלה על תוכן המסמך..."
-                       class="flex-1 bg-slate-100 border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-blue-500/10 focus:bg-white focus:border-blue-500 outline-none transition-all text-lg shadow-inner"
-                       onkeypress="if(event.key === 'Enter') sendMessage()">
-
-                <button onclick="sendMessage()" class="bg-blue-600 text-white p-4 rounded-2xl hover:bg-blue-700 transition-all shadow-lg hover:shadow-blue-300 active:scale-90 group">
-                    <i data-lucide="send" class="w-6 h-6 group-hover:translate-x-[-2px] transition-transform"></i>
-                </button>
+        <!-- Input Footer -->
+        <footer class="p-6 glass-strong border-t border-white/20 shadow-2xl">
+            <div class="max-w-4xl mx-auto">
+                <div class="flex gap-3 relative">
+                    <div class="flex-1 relative">
+                        <input type="text" id="userInput"
+                               placeholder="שאל שאלה על תוכן המסמך..."
+                               class="w-full bg-white/90 border-2 border-slate-200 rounded-2xl px-6 py-4 pr-14 focus:ring-4 focus:ring-blue-500/20 focus:bg-white focus:border-blue-500 outline-none transition-all text-lg shadow-lg placeholder:text-slate-400"
+                               onkeypress="if(event.key === 'Enter' && !event.shiftKey) sendMessage()"
+                               disabled>
+                        <button onclick="sendMessage()" id="sendButton"
+                                class="absolute left-3 top-1/2 -translate-y-1/2 bg-gradient-to-r from-blue-600 to-purple-600 text-white p-3 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled>
+                            <i data-lucide="send" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="mt-3 text-xs text-slate-500 text-center">
+                    <i data-lucide="info" class="w-3 h-3 inline"></i> לחץ Enter לשליחה • Shift+Enter לשורה חדשה
+                </div>
             </div>
         </footer>
     </main>
 </div>
 
 <script>
-    // אתחול אייקונים
+    // Global state
+    let currentPdfId = null;
+    let currentUserId = 1;
+
+    // Initialize icons
     lucide.createIcons();
 
-    // פונקציית העלאת קובץ
+    // Update send button state
+    function updateSendButton() {
+        const input = document.getElementById('userInput');
+        const sendButton = document.getElementById('sendButton');
+        const hasFile = currentPdfId !== null;
+        input.disabled = !hasFile;
+        sendButton.disabled = !hasFile;
+        if (!hasFile) {
+            input.placeholder = 'העלה קובץ PDF קודם...';
+        } else {
+            input.placeholder = 'שאל שאלה על תוכן המסמך...';
+        }
+    }
+
+    updateSendButton();
+
+    // File upload handler
     async function handleUpload(input) {
         const file = input.files[0];
         if (!file) return;
 
         const uploadText = document.getElementById('uploadText');
-        uploadText.innerText = 'מעלה...';
+        const originalText = uploadText.innerText;
+        uploadText.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> מעלה...';
+        lucide.createIcons();
 
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('userId', '1');
+        formData.append('userId', currentUserId.toString());
 
         try {
             const response = await fetch('http://localhost:8080/api/pdf/upload', {
                 method: 'POST',
                 body: formData
             });
+
             if (response.ok) {
-                alert('הקובץ הועלה בהצלחה! השרת מעבד אותו ברקע.');
+                const data = await response.json();
+                currentPdfId = data.pdfId;
+
+                // Update UI
+                addFileToList(file.name, currentPdfId);
+                updateFileInfo(file.name);
+                updateSendButton();
+
+                // Show success message
+                addBotMessage(`✅ הקובץ "${file.name}" הועלה בהצלחה! אני מוכן לענות על שאלות.`);
+
+                uploadText.innerText = '✅ הועלה';
+                setTimeout(() => {
+                    uploadText.innerText = originalText;
+                }, 2000);
+            } else {
+                const error = await response.text();
+                throw new Error(error || 'שגיאה בהעלאת הקובץ');
             }
         } catch (err) {
             console.error(err);
-            alert('שגיאה בתקשורת עם השרת');
+            addBotMessage('❌ שגיאה בהעלאת הקובץ. אנא נסה שוב.');
+            uploadText.innerText = originalText;
         } finally {
-            uploadText.innerText = 'העלה PDF';
+            lucide.createIcons();
         }
     }
 
-    // פונקציית שליחת הודעה
+    // Add file to sidebar list
+    function addFileToList(filename, pdfId) {
+        const fileList = document.getElementById('fileList');
+        const noFilesMessage = document.getElementById('noFilesMessage');
+
+        if (noFilesMessage) {
+            noFilesMessage.remove();
+        }
+
+        // Remove existing active file highlight
+        document.querySelectorAll('.file-item').forEach(item => {
+            item.classList.remove('bg-gradient-to-r', 'from-blue-500', 'to-purple-600', 'text-white', 'shadow-lg');
+            item.classList.add('bg-white/50', 'hover:bg-white/80', 'text-slate-700');
+        });
+
+        // Check if file already exists
+        let fileItem = document.querySelector(`[data-pdf-id="${pdfId}"]`);
+        if (!fileItem) {
+            fileItem = document.createElement('div');
+            fileItem.className = 'file-item bg-gradient-to-r from-blue-500 to-purple-600 text-white p-4 rounded-xl cursor-pointer transition-all shadow-lg border border-white/20 message-enter';
+            fileItem.setAttribute('data-pdf-id', pdfId);
+            fileItem.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
+                        <i data-lucide="file-text" class="w-6 h-6"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="font-semibold truncate">${filename}</div>
+                        <div class="text-xs opacity-80">ID: ${pdfId}</div>
+                    </div>
+                </div>
+            `;
+            fileItem.onclick = () => selectFile(pdfId, filename);
+            fileList.insertBefore(fileItem, fileList.firstChild);
+        } else {
+            fileItem.classList.remove('bg-white/50', 'hover:bg-white/80', 'text-slate-700');
+            fileItem.classList.add('bg-gradient-to-r', 'from-blue-500', 'to-purple-600', 'text-white', 'shadow-lg');
+        }
+
+        lucide.createIcons();
+    }
+
+    // Select file
+    function selectFile(pdfId, filename) {
+        currentPdfId = pdfId;
+        updateFileInfo(filename);
+        updateSendButton();
+        addBotMessage(`📄 עברתי למסמך "${filename}". איך אוכל לעזור?`);
+    }
+
+    // Update file info in header
+    function updateFileInfo(filename) {
+        document.getElementById('currentFileInfo').textContent = `מסמך פעיל: ${filename}`;
+    }
+
+    // Add bot message
+    function addBotMessage(text) {
+        const messageList = document.getElementById('messageList');
+        const messageId = 'msg-' + Date.now();
+        const botHtml = `
+            <div id="${messageId}" class="flex justify-end mb-6 message-enter">
+                <div class="flex gap-4 max-w-[85%] flex-row-reverse">
+                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 text-white flex items-center justify-center shrink-0 shadow-lg border-2 border-white/20">
+                        <i data-lucide="sparkles" class="w-7 h-7"></i>
+                    </div>
+                    <div class="p-5 rounded-3xl shadow-xl bg-gradient-to-br from-blue-600 to-purple-600 text-white leading-relaxed border border-white/20 message-bubble">
+                        <div class="flex items-center gap-2 mb-2">
+                            <i data-lucide="bot" class="w-4 h-4"></i>
+                            <span class="text-xs font-semibold opacity-90">Gemini Assistant</span>
+                        </div>
+                        ${escapeHtml(text)}
+                    </div>
+                </div>
+            </div>`;
+        messageList.innerHTML += botHtml;
+        lucide.createIcons();
+        scrollToBottom();
+    }
+
+    // Add user message
+    function addUserMessage(text) {
+        const messageList = document.getElementById('messageList');
+        const messageId = 'msg-' + Date.now();
+        const userHtml = `
+            <div id="${messageId}" class="flex justify-start mb-6 message-enter">
+                <div class="flex gap-4 max-w-[85%]">
+                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-400 to-slate-600 text-white flex items-center justify-center shrink-0 shadow-lg border-2 border-white/20">
+                        <i data-lucide="user" class="w-7 h-7"></i>
+                    </div>
+                    <div class="p-5 rounded-3xl shadow-xl bg-white border-2 border-slate-200 text-slate-800 leading-relaxed message-bubble">
+                        ${escapeHtml(text)}
+                    </div>
+                </div>
+            </div>`;
+        messageList.innerHTML += userHtml;
+        lucide.createIcons();
+        scrollToBottom();
+    }
+
+    // Send message
     async function sendMessage() {
         const input = document.getElementById('userInput');
-        const messageList = document.getElementById('messageList');
         const question = input.value.trim();
-        if (!question) return;
+        if (!question || !currentPdfId) return;
 
-        // הוספת הודעת משתמש למסך
-        const userHtml = `
-                <div class="flex justify-start mb-6">
-                    <div class="flex gap-3 max-w-[80%]">
-                        <div class="w-10 h-10 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center shrink-0 border border-slate-300">
-                            <i data-lucide="user" class="w-6 h-6"></i>
-                        </div>
-                        <div class="p-4 rounded-2xl shadow-sm bg-white border border-slate-200 text-slate-800 leading-relaxed">
-                            ${question}
+        // Add user message
+        addUserMessage(question);
+        input.value = '';
+
+        // Show loading
+        const loadingId = 'loading-' + Date.now();
+        const messageList = document.getElementById('messageList');
+        messageList.innerHTML += `
+            <div id="${loadingId}" class="flex justify-end mb-6 message-enter">
+                <div class="flex gap-4 max-w-[85%] flex-row-reverse">
+                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 text-white flex items-center justify-center shrink-0 shadow-lg border-2 border-white/20 pulse-ring">
+                        <i data-lucide="loader-2" class="w-7 h-7 animate-spin"></i>
+                    </div>
+                    <div class="p-5 rounded-3xl shadow-xl bg-gradient-to-br from-blue-500/50 to-purple-600/50 text-white border border-white/20">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="brain" class="w-4 h-4 animate-pulse"></i>
+                            <span class="text-sm font-semibold">Gemini חושב...</span>
                         </div>
                     </div>
-                </div>`;
-        messageList.innerHTML += userHtml;
-        input.value = '';
+                </div>
+            </div>`;
         lucide.createIcons();
-
-        // גלילה למטה
-        const chatWindow = document.getElementById('chatWindow');
-        chatWindow.scrollTop = chatWindow.scrollHeight;
-
-        // הצגת "חושב..."
-        const loadingId = 'loading-' + Date.now();
-        messageList.innerHTML += `<div id="${loadingId}" class="flex justify-end mb-6 animate-pulse text-slate-400 text-sm">Gemini חושב...</div>`;
+        scrollToBottom();
 
         try {
-            const response = await fetch(`http://localhost:8080/api/rag/ask?pdfId=1&userId=1&question=${encodeURIComponent(question)}`, {
-                method: 'POST'
+            // Use FormData for POST request with parameters
+            const formData = new FormData();
+            formData.append('pdfId', currentPdfId.toString());
+            formData.append('userId', currentUserId.toString());
+            formData.append('question', question);
+
+            const response = await fetch('http://localhost:8080/api/rag/ask', {
+                method: 'POST',
+                body: formData
             });
-            const answer = await response.text();
 
             document.getElementById(loadingId).remove();
 
-            const botHtml = `
-                    <div class="flex justify-end mb-6">
-                        <div class="flex gap-3 max-w-[80%] flex-row-reverse">
-                            <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 border border-blue-200 shadow-sm">
-                                <i data-lucide="bot" class="w-6 h-6"></i>
-                            </div>
-                            <div class="p-4 rounded-2xl shadow-sm bg-blue-600 text-white leading-relaxed border border-blue-500 shadow-md">
-                                ${answer}
-                            </div>
-                        </div>
-                    </div>`;
-            messageList.innerHTML += botHtml;
-            lucide.createIcons();
-            chatWindow.scrollTop = chatWindow.scrollHeight;
-
+            if (response.ok) {
+                const data = await response.json();
+                addBotMessage(data.answer || 'לא התקבלה תשובה');
+            } else {
+                const error = await response.text();
+                addBotMessage('❌ שגיאה: ' + (error || 'לא הצלחתי לענות על השאלה'));
+            }
         } catch (err) {
-            document.getElementById(loadingId).innerText = 'שגיאה בחיבור לשרת.';
+            document.getElementById(loadingId).remove();
+            addBotMessage('❌ שגיאה בחיבור לשרת. אנא נסה שוב.');
+            console.error(err);
         }
     }
+
+    // Scroll to bottom
+    function scrollToBottom() {
+        const chatWindow = document.getElementById('chatWindow');
+        setTimeout(() => {
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }, 100);
+    }
+
+    // Escape HTML
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML.replace(/\n/g, '<br>');
+    }
+
+    // Reinitialize icons periodically (for dynamic content)
+    setInterval(() => {
+        lucide.createIcons();
+    }, 1000);
 </script>
 </body>
 </html>
