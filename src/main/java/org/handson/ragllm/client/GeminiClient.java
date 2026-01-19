@@ -32,7 +32,7 @@ public class GeminiClient {
         );
 
         try {
-            System.out.println("DEBUG: Sending Embedding request to: " + url);
+            //System.out.println("DEBUG: Sending Embedding request to: " + url);
             Map<String, Object> response = restTemplate.postForObject(url, request, Map.class);
 
             if (response == null || !response.containsKey("embedding")) {
@@ -60,15 +60,15 @@ public class GeminiClient {
     public void listAvailableModels() {
         try {
             String url = "https://generativelanguage.googleapis.com/" + geminiConfig.getApiVersion() + "/models?key=" + geminiConfig.getApiKey();
-            System.out.println("DEBUG: Fetching available models from: " + url);
+            //System.out.println("DEBUG: Fetching available models from: " + url);
             Map<String, Object> response = restTemplate.getForObject(url, Map.class);
             if (response != null && response.containsKey("models")) {
                 List<Map<String, Object>> models = (List<Map<String, Object>>) response.get("models");
-                System.out.println("Available models:");
+                /*System.out.println("Available models:");
                 for (Map<String, Object> model : models) {
                     String name = (String) model.get("name");
                     System.out.println("  - " + name);
-                }
+                }*/
             }
         } catch (Exception e) {
             System.err.println("Failed to list models: " + e.getMessage());

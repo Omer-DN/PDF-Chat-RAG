@@ -1,12 +1,12 @@
 package org.handson.ragllm.controller;
 
-import org.handson.ragllm.model.QuestionRequest;
-import org.handson.ragllm.service.*; // וודא שזה השם העדכני של ה-Service שלך
+import org.handson.ragllm.service.RagService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "http://localhost:5173") // עדיף להגדיר את הכתובת של ה-React
 @RestController
 @RequestMapping("/api/rag")
 public class RagController {
@@ -18,16 +18,22 @@ public class RagController {
     }
 
     /**
-     * מקבל שאלה מה-UI ומחזיר תשובה מה-PDF
+     * עדכון: שימוש ב-@RequestParam לכל הפרמטרים כדי לתמוך ב-FormData מה-React
      */
     @PostMapping("/ask")
-    public Map<String, String> ask(
-            @RequestParam Long pdfId,
-            @RequestBody QuestionRequest request) {
+    public ResponseEntity<Map<String, String>> ask(
+            @RequestParam("pdfId") Long pdfId,
+            @RequestParam("userId") Long userId,
+            @RequestParam("question") String question) {
 
-        // קריאה ל-Gemini דרך ה-RagService
-        String answer = ragService.askQuestion(pdfId, request.getQuestion(), request.getUserId());
+        try {
+            // קריאה ל-Gemini דרך ה-RagService
+            String answer = ragService.askQuestion(pdfId, question, userId);
 
-        return Map.of("answer", answer);
+            return ResponseEntity.ok(Map.of("answer", answer));
+        } catch (Exception e) {
+            // במקרה של שגיאה, מחזירים הודעה מתאימה ל-UI
+            return ResponseEntity.status(500).body(Map.of("answer", "שגיאה בעיבוד השאלה: " + e.getMessage()));
+        }
     }
 }
