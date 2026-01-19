@@ -21,4 +21,9 @@ public class UserService {
         user.setPassword(password);
         return userRepository.save(user);
     }
+    public User validateUser(String email, String password) {
+        return userRepository.findByEmail(email)
+                .filter(user -> user.getPassword().equals(password))
+                .orElse(null);
+    }
 }
