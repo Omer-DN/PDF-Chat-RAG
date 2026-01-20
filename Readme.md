@@ -1,40 +1,52 @@
-# RAG LLM PDF Backend
+# RAG AI PDF Assistant
 
 ## Overview
 
-This project is a **Java Spring Boot backend** for a **RAG (Retrieval-Augmented Generation)** system using PDF files.  
-It allows uploading PDFs, extracting text, splitting it into chunks, generating embeddings, and storing everything in PostgreSQL.  
-Later, embeddings will be used for semantic search and question-answering (RAG) via LangChain and Gemini API.
-
-Currently, embeddings are dummy placeholders (`byte[]`). Future updates will integrate **Gemini embeddings**, **pgvector**, and **semantic search**.
+This project is a Full-Stack Retrieval-Augmented Generation (RAG) system. 
+It enables users to upload PDF documents, which are then processed, "chunked", and converted into vector embeddings using the Gemini API. 
+Users can then perform semantic searches and ask complex questions based on the content of their uploaded documents.
 
 ---
 
 ## Features
 
-- Upload PDF files via REST API
-- Extract text from PDFs
-- Split text into chunks
-- Save PDF and chunks to PostgreSQL
-- Generate dummy embeddings
-- REST endpoints to retrieve chunks
-- Future: Semantic search over PDFs using embeddings and RAG (LangChain)
+* User Authentication: Full registration and login system with persistent history.
+
+* Persistent Sidebar: Automatically retrieves and displays the user's previously uploaded PDF history from the database upon login.
+
+* Smart PDF Processing: - Text extraction using PDFBox.
+
+ - Intelligent text splitting into manageable chunks.
+
+ - Real-time vector embedding generation via Google Gemini API.
+
+* Vector Storage: Integrated with PostgreSQL (and prepared for pgvector) to store document chunks and their associated embeddings.
+
+* Interactive Chat: Modern React UI for chatting with documents, featuring loading states and real-time feedback.
 
 ---
 
 ## Technologies Used
 
-- Java 17+
-- Spring Boot 3.2.x
-- Spring Data JPA
-- PostgreSQL + pgvector
-- Maven
-- PDFBox
-- SpringDoc OpenAPI (Swagger)
-- Docker
-- Gemini API (planned)
-- LangChain / RAG (planned)
-- Lombok (optional)
+Backend (Java/Spring Boot)
+* Spring Boot 3.x & Spring Data JPA
+
+* PostgreSQL (Database)
+
+* PDFBox (PDF processing)
+
+* Gemini API (LLM & Embeddings)
+
+* Jackson (JSON handling with @JsonIgnore for optimized performance)
+
+Frontend (React)
+* React.js (Vite)
+
+* Tailwind CSS (Styling)
+
+* Lucide React (Iconography)
+
+* Axios (API communication)
 
 ---
 
@@ -64,46 +76,36 @@ docker run -d \
 
 
 ### 3. Build & Run the Backend
+Backend:
     mvn clean install
     mvn spring-boot:run
 
+Frontend:
+    npm install
+    npm run dev
+
 ### API Endpoints
-    Upload PDF
-    POST /api/pdf/upload
-    Content-Type: multipart/form-data
-    Form field: file
+Authentication
+* POST /api/users/register - Create a new account.
+
+* POST /api/users/login - Authenticate and get user details.
+
+PDF Management
+* POST /api/pdf/upload - Upload PDF and generate embeddings.
+
+* GET /api/pdf/user/{userId} - (New) Retrieve all files belonging to a specific user.
+
+RAG Operations
+* POST /api/rag/ask - Send a question and get an AI answer based on a specific PDF.
 
 
-### Response:
-    {
-    "message": "PDF uploaded successfully with embeddings",
-    "pdfId": 1,
-    "filename": "example.pdf",
-    "numChunks": 5
-    }
 
-### Retrieve Chunks     
-    GET /api/pdf/{pdfId}/chunks
+### Future Work / Roadmap
 
+[ ] Transition to pgvector for native vector similarity search.
 
-### Response:
-    {
-    "pdfId": 1,
-    "numChunks": 5,
-    "chunks": [
-    "First chunk text...",
-    "Second chunk text..."
-    ]
-    }
+[ ] Add support for multiple PDF selection in a single chat.
 
-Future Work / Roadmap
+[ ] Implement chat history persistence (saving the messages themselves).
 
-Integrate Gemini API to generate real embeddings.
-
-Store embeddings as vector type using pgvector for similarity search.
-
-Implement /ask endpoint for question-answering over PDFs using RAG / LangChain.
-
-Improve error handling and input validation.
-
-Add authentication/authorization.
+[x] Implement user-specific file history.
