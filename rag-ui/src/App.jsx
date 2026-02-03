@@ -26,6 +26,14 @@ export default function App() {
         chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages, isLoading]);
 
+    // Load user files when user logs in
+    useEffect(() => {
+        if (user) {
+            loadUserFiles();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user]);
+
     // --- Auth Functions ---
 
     const handleAuth = async () => {
@@ -51,6 +59,7 @@ export default function App() {
                 text: `שלום ${res.data.username}, ברוך הבא למערכת!`,
                 isBot: true
             }]);
+            // Files will be loaded by useEffect when user is set
         } catch (err) {
             alert(isLoginMode ? "פרטי התחברות שגויים או משתמש לא קיים" : "שגיאה ברישום המשתמש");
         } finally {
@@ -68,6 +77,80 @@ export default function App() {
 
     // --- File & Chat Functions ---
 
+    // Load user files from server
+    const loadUserFiles = async () => {
+        if (!user) return;
+        try {
+            const res = await axios.get(`${API_BASE}/pdf/user/${user.id}`);
+            const loadedFiles = res.data.map(file => ({
+                id: file.id,
+                name: file.filename
+            }));
+            setFiles(loadedFiles);
+            
+            // If there are files, select the first one and load its history
+            if (loadedFiles.length > 0) {
+                const firstFile = loadedFiles[0];
+                // If no current file or current file not in list, select first file
+                if (!currentFile || !loadedFiles.some(f => f.id === currentFile.id)) {
+                    await selectFile(firstFile);
+                } else {
+                    // Reload history for current file
+                    await loadChatHistory(currentFile.id);
+                }
+            }
+        } catch (err) {
+            console.error("Error loading user files:", err);
+        }
+    };
+
+    // Load chat history for a specific file
+    const loadChatHistory = async (fileId) => {
+        if (!user || !fileId) return;
+        try {
+            const res = await axios.get(`${API_BASE}/pdf/history/${user.id}/${fileId}`);
+            const history = res.data;
+            
+            if (history && history.length > 0) {
+                // Convert history to messages format
+                const historyMessages = [];
+                history.forEach(item => {
+                    historyMessages.push({
+                        id: `q-${item.createdAt}`,
+                        text: item.question,
+                        isBot: false
+                    });
+                    historyMessages.push({
+                        id: `a-${item.createdAt}`,
+                        text: item.answer,
+                        isBot: true
+                    });
+                });
+                setMessages(historyMessages);
+            } else {
+                // No history, show welcome message
+                setMessages([{
+                    id: 'welcome',
+                    text: `שלום ${user.username}, ברוך הבא למערכת! העלה קובץ PDF או בחר קובץ קיים להתחלה.`,
+                    isBot: true
+                }]);
+            }
+        } catch (err) {
+            console.error("Error loading chat history:", err);
+            setMessages([{
+                id: 'welcome',
+                text: `שלום ${user.username}, ברוך הבא למערכת!`,
+                isBot: true
+            }]);
+        }
+    };
+
+    // Select file and load its history
+    const selectFile = async (file) => {
+        setCurrentFile(file);
+        await loadChatHistory(file.id);
+    };
+
     const handleUpload = async (e) => {
         const file = e.target.files[0];
         if (!file || !user) return;
@@ -79,7 +162,7 @@ export default function App() {
             const res = await axios.post(`${API_BASE}/pdf/upload`, formData);
             const newFile = { id: res.data.pdfId, name: file.name };
             setFiles(prev => [newFile, ...prev]);
-            setCurrentFile(newFile);
+            await selectFile(newFile);
             if (fileInputRef.current) fileInputRef.current.value = "";
         } catch (err) {
             if (fileInputRef.current) fileInputRef.current.value = "";
@@ -166,12 +249,18 @@ export default function App() {
                     <div className="text-xs font-bold text-slate-400 uppercase mb-4 tracking-widest flex items-center gap-2">
                         <FileText size={14} /> המסמכים שלי
                     </div>
-                    {files.map(f => (
-                        <div key={f.id} onClick={() => setCurrentFile(f)} className={`p-3 rounded-xl mb-2 cursor-pointer transition-all flex items-center gap-3 ${currentFile?.id === f.id ? 'bg-blue-600 text-white shadow-lg' : 'bg-white/50 hover:bg-white/80'}`}>
-                            <FileText className="w-4 h-4 shrink-0" />
-                            <span className="truncate text-sm font-medium">{f.name}</span>
+                    {files.length === 0 ? (
+                        <div className="text-sm text-slate-400 text-center py-8">
+                            עדיין לא הועלו קבצים
                         </div>
-                    ))}
+                    ) : (
+                        files.map(f => (
+                            <div key={f.id} onClick={() => selectFile(f)} className={`p-3 rounded-xl mb-2 cursor-pointer transition-all flex items-center gap-3 ${currentFile?.id === f.id ? 'bg-blue-600 text-white shadow-lg' : 'bg-white/50 hover:bg-white/80'}`}>
+                                <FileText className="w-4 h-4 shrink-0" />
+                                <span className="truncate text-sm font-medium">{f.name}</span>
+                            </div>
+                        ))
+                    )}
                 </div>
                 <div className="p-4 border-t border-white/20">
                     <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 p-3 text-red-500 hover:bg-red-50 rounded-xl transition-all font-bold">
