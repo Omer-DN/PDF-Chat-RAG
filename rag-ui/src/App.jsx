@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { Sparkles, FileText, Upload, Send, Bot, User, Loader2, LogIn, UserPlus, LogOut, Key, Trash2, X, Linkedin } from 'lucide-react';
 
-const API_BASE = "http://localhost:8080/api";
+// API Base URL - uses environment variable in production, localhost in development
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api";
 
 export default function App() {
     // --- States ---
