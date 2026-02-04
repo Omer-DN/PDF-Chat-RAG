@@ -30,13 +30,13 @@ public class PdfController {
 
         // בדיקת גודל קובץ
         long fileSize = file.getSize();
-        String storageType = fileSize > 10 * 1024 * 1024 ? "Elasticsearch" : "PostgreSQL";
+        String storageType = "PostgreSQL";
         
         // PdfFileService.save() כבר עושה הכל:
         // 1. שמירת פרטי הקובץ ב-DB
         // 2. חילוץ טקסט מה-PDF
         // 3. חלוקה ל-Chunks
-        // 4. יצירת embeddings ושמירה (PostgreSQL או Elasticsearch לפי גודל)
+        // 4. יצירת embeddings ושמירה ב-PostgreSQL
         PdfFile saved = pdfFileService.save(file, userId);
 
         Map<String, Object> response = new HashMap<>();

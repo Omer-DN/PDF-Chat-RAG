@@ -26,26 +26,14 @@ public class StorageStrategyFactory {
 
     /**
      * בוחר את אסטרטגיית האחסון המתאימה לפי גודל הקובץ
-     * עדיפות: PostgreSQL (לקבצים קטנים) ואז Elasticsearch (לקבצים גדולים)
+     * משתמש ב-PostgreSQL בלבד
      * @param fileSizeBytes גודל הקובץ בבתים
      * @return אסטרטגיית האחסון המתאימה
      * @throws IllegalArgumentException אם אין אסטרטגיה תומכת בגודל זה
      */
     public StorageStrategy getStrategy(long fileSizeBytes) {
-        // נסה למצוא אסטרטגיה תומכת - קודם PostgreSQL, אחר כך Elasticsearch
-        StorageStrategy postgresStrategy = strategies.stream()
-                .filter(s -> s instanceof PostgreSQLStorageStrategy)
-                .filter(s -> s.supportsFileSize(fileSizeBytes))
-                .findFirst()
-                .orElse(null);
-        
-        if (postgresStrategy != null) {
-            return postgresStrategy;
-        }
-        
-        // אם PostgreSQL לא תומך, נסה Elasticsearch
         return strategies.stream()
-                .filter(s -> s instanceof ElasticsearchStorageStrategy)
+                .filter(s -> s instanceof PostgreSQLStorageStrategy)
                 .filter(s -> s.supportsFileSize(fileSizeBytes))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException(

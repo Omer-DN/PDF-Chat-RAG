@@ -5,7 +5,7 @@ import org.handson.ragllm.model.PdfFile;
 import java.util.List;
 
 /**
- * Interface לאסטרטגיית אחסון - PostgreSQL או Elasticsearch
+ * Interface לאסטרטגיית אחסון - PostgreSQL
  */
 public interface StorageStrategy {
     
