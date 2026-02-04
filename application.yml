@@ -1,5 +1,8 @@
 spring:
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      # ddl-auto=update: מעדכן את הטבלאות אבל לא מוחק אותן
+      # ddl-auto=validate: רק בודק שהטבלאות קיימות (לא יוצר/מעדכן)
+      # ddl-auto=create-drop: יוצר ומחק בטעינה/סגירה (לא מומלץ!)
+      ddl-auto: update
 
