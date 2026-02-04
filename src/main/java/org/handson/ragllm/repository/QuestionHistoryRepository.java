@@ -18,4 +18,9 @@ public interface QuestionHistoryRepository extends JpaRepository<QuestionHistory
      * שליפת כל השאלות שמשתמש שאל אי פעם (בכל הקבצים).
      */
     List<QuestionHistory> findByUserIdOrderByCreatedAtDesc(Long userId);
+
+    /**
+     * מחיקת כל היסטוריית הצ'אט של משתמש עבור קובץ ספציפי
+     */
+    void deleteByUserIdAndPdfFileId(Long userId, Long pdfId);
 }

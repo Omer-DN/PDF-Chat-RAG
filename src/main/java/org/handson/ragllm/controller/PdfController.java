@@ -28,16 +28,22 @@ public class PdfController {
             @RequestParam("file") MultipartFile file,
             @RequestParam("userId") Long userId) throws Exception {
 
+        // בדיקת גודל קובץ
+        long fileSize = file.getSize();
+        String storageType = fileSize > 10 * 1024 * 1024 ? "Elasticsearch" : "PostgreSQL";
+        
         // PdfFileService.save() כבר עושה הכל:
         // 1. שמירת פרטי הקובץ ב-DB
         // 2. חילוץ טקסט מה-PDF
         // 3. חלוקה ל-Chunks
-        // 4. יצירת embeddings ושמירה ב-pdf_text_chunks
+        // 4. יצירת embeddings ושמירה (PostgreSQL או Elasticsearch לפי גודל)
         PdfFile saved = pdfFileService.save(file, userId);
 
         Map<String, Object> response = new HashMap<>();
         response.put("message", "PDF uploaded and processed successfully");
         response.put("pdfId", saved.getId());
+        response.put("fileSize", fileSize);
+        response.put("storageType", storageType);
         return response;
     }
 
@@ -66,10 +72,51 @@ public class PdfController {
         List<QuestionHistory> history = pdfFileService.getChatHistory(userId, pdfId);
         return history.stream().map(h -> {
             Map<String, Object> historyMap = new HashMap<>();
+            historyMap.put("id", h.getId());
             historyMap.put("question", h.getQuestion());
             historyMap.put("answer", h.getAnswer());
             historyMap.put("createdAt", h.getCreatedAt() != null ? h.getCreatedAt().toString() : null);
             return historyMap;
         }).collect(Collectors.toList());
+    }
+
+    /**
+     * מחיקת היסטוריית צ'אט של משתמש עבור קובץ ספציפי
+     */
+    @DeleteMapping("/history/{userId}/{pdfId}")
+    public Map<String, Object> deleteChatHistory(
+            @PathVariable Long userId,
+            @PathVariable Long pdfId) {
+        pdfFileService.deleteChatHistory(userId, pdfId);
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Chat history deleted successfully");
+        response.put("pdfId", pdfId);
+        return response;
+    }
+
+    /**
+     * מחיקת קובץ PDF וכל הנתונים הקשורים אליו
+     */
+    @DeleteMapping("/{userId}/{pdfId}")
+    public Map<String, Object> deletePdfFile(
+            @PathVariable Long userId,
+            @PathVariable Long pdfId) {
+        try {
+            pdfFileService.deletePdfFile(userId, pdfId);
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "PDF file and all related data deleted successfully");
+            response.put("pdfId", pdfId);
+            return response;
+        } catch (RuntimeException e) {
+            // החזר שגיאה ברורה ל-Frontend
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", true);
+            errorResponse.put("message", e.getMessage());
+            errorResponse.put("pdfId", pdfId);
+            // במקום לזרוק exception, נחזיר response עם status code
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST, 
+                    e.getMessage() != null ? e.getMessage() : "Error deleting PDF file");
+        }
     }
 }

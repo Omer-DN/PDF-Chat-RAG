@@ -2,6 +2,8 @@ package org.handson.ragllm.service;
 
 import org.handson.ragllm.model.*;
 import org.handson.ragllm.repository.*;
+import org.handson.ragllm.storage.StorageStrategy;
+import org.handson.ragllm.storage.StorageStrategyFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,20 +14,23 @@ public class RagService {
 
     private final PdfRepository pdfRepository;
     private final PdfTextChunkRepository chunkRepository;
-    private final GeminiApiService geminiApiService; // הזרקה של ה-API המאוחד
+    private final GeminiApiService geminiApiService;
     private final UserRepository userRepository;
     private final QuestionHistoryRepository historyRepository;
+    private final StorageStrategyFactory storageStrategyFactory;
 
     public RagService(PdfRepository pdfRepository,
                       PdfTextChunkRepository chunkRepository,
                       GeminiApiService geminiApiService,
                       UserRepository userRepository,
-                      QuestionHistoryRepository historyRepository) {
+                      QuestionHistoryRepository historyRepository,
+                      StorageStrategyFactory storageStrategyFactory) {
         this.pdfRepository = pdfRepository;
         this.chunkRepository = chunkRepository;
         this.geminiApiService = geminiApiService;
         this.userRepository = userRepository;
         this.historyRepository = historyRepository;
+        this.storageStrategyFactory = storageStrategyFactory;
     }
 
     @Transactional
@@ -39,14 +44,18 @@ public class RagService {
         // 1. הפיכת השאלה לוקטור
         float[] questionVector = geminiApiService.getEmbedding(question);
 
-        // 2. חיפוש דמיון ב-DB
-        List<String> contextChunks = chunkRepository.findTopKTextByEmbedding(pdfId, questionVector, 5);
+        // 2. בחירת אסטרטגיית אחסון לפי גודל הקובץ
+        long fileSize = pdfFile.getData().length;
+        StorageStrategy storageStrategy = storageStrategyFactory.getStrategy(fileSize);
+        
+        // 3. חיפוש דמיון באמצעות האסטרטגיה הנבחרת
+        List<String> contextChunks = storageStrategy.searchSimilarChunks(pdfId, questionVector, 5);
         String context = String.join("\n---\n", contextChunks);
 
-        // 3. יצירת תשובה מ-Gemini
+        // 4. יצירת תשובה מ-Gemini
         String answer = geminiApiService.generateAnswerFromContext(question, context);
 
-        // 4. שמירה להיסטוריה
+        // 5. שמירה להיסטוריה
         historyRepository.save(new QuestionHistory(user, pdfFile, question, answer));
 
         return answer;

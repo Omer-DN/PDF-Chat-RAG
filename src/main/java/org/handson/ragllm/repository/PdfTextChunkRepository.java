@@ -15,4 +15,6 @@ public interface PdfTextChunkRepository extends JpaRepository<PdfTextChunk, Long
     List<String> findTopKTextByEmbedding(@Param("pdfId") Long pdfId,
                                          @Param("vector") float[] vector,
                                          @Param("topK") int topK);
+
+    void deleteByPdfFileId(Long pdfId);
 }
