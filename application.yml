@@ -1,5 +1,6 @@
 spring:
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      # update משמר נתונים בין הפעלות. create-drop מוחק הכל בסגירת האפליקציה.
+      ddl-auto: update
 

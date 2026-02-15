@@ -1,6 +1,11 @@
 -- טבלאות נדרשות לאפליקציית RAG PDF
 -- הרץ PostgreSQL (מסד rag_llm): psql -U postgres -d rag_llm -f schema.sql
 -- או דרך כלי ניהול DB.
+-- הערה: הסקריפט לא מוחק את users או נתוני משתמשים.
+
+-- מחיקת טבלאות ישנות שלא בשימוש (לפני יצירת הטבלאות הנדרשות)
+DROP TABLE IF EXISTS pdf_chunk_embeddings;
+DROP TABLE IF EXISTS pdf_document;
 
 -- הרחבת וקטורים (נדרשת ל-pdf_chunks)
 CREATE EXTENSION IF NOT EXISTS vector;
@@ -51,7 +56,3 @@ CREATE TABLE IF NOT EXISTS question_answers (
 
 CREATE INDEX IF NOT EXISTS idx_question_answers_user_id ON question_answers(user_id);
 CREATE INDEX IF NOT EXISTS idx_question_answers_user_pdf ON question_answers(user_id, pdf_id);
-
--- מחיקת טבלאות ישנות שלא בשימוש (רק pdf_files ו-pdf_chunks נשארות)
-DROP TABLE IF EXISTS pdf_chunk_embeddings;
-DROP TABLE IF EXISTS pdf_document;

@@ -55,10 +55,10 @@ public class PdfFileService {
         return repository.findById(id);
     }
 
-    /** מוחק קובץ PDF אחד וכל הצ'אט והמקטעים שלו. רק אם המשתמש בעלים. */
+    /** מוחק קובץ PDF אחד וכל הצ'אט והמקטעים שלו. רק אם המשתמש בעלים. בלי טעינת LOB. */
     @Transactional
     public boolean deletePdfAndRelated(Long pdfId, Long userId) {
-        if (repository.findById(pdfId).filter(f -> f.getUserId().equals(userId)).isEmpty()) {
+        if (!repository.existsByIdAndUserId(pdfId, userId)) {
             return false;
         }
         questionAnswerRepository.deleteByUserIdAndPdfId(userId, pdfId);
@@ -67,13 +67,13 @@ public class PdfFileService {
         return true;
     }
 
-    /** מוחק את כל הקבצים וההיסטוריה של המשתמש. */
+    /** מוחק את כל הקבצים וההיסטוריה של המשתמש. משתמש ב-Summary כדי לא לטעון LOB. */
     @Transactional
     public void deleteAllByUserId(Long userId) {
         questionAnswerRepository.deleteByUserId(userId);
-        List<PdfFile> files = repository.findByUserIdOrderByUploadedAtDesc(userId);
-        for (PdfFile f : files) {
-            chunkRepository.deleteByPdfId(f.getId());
+        List<PdfFileSummary> summaries = repository.findSummariesByUserIdOrderByUploadedAtDesc(userId);
+        for (PdfFileSummary s : summaries) {
+            chunkRepository.deleteByPdfId(s.getId());
         }
         repository.deleteByUserId(userId);
     }
