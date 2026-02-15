@@ -1,29 +1,27 @@
-spring.application.name=rag-llm
+# העתק ל-application.properties והתאם ערכים (או השתמש במשתני סביבה)
+# אל תעלה מפתחות אמיתיים ל-Git!
 
-# פורט השרת (אם 8080 תפוס, שנה ל-8081 או השאר והעצר את התהליך על 8080)
+spring.application.name=rag-llm
 server.port=8080
 
-# גודל מקסימלי להעלאת קובץ (PDF יכול להיות גדול)
 spring.servlet.multipart.max-file-size=50MB
 spring.servlet.multipart.max-request-size=50MB
 
 spring.datasource.url=jdbc:postgresql://localhost:5432/rag_llm
 spring.datasource.username=postgres
 spring.datasource.password=postgres
-
 spring.datasource.driver-class-name=org.postgresql.Driver
 
 spring.jpa.hibernate.ddl-auto=update
 spring.jpa.properties.hibernate.format_sql=false
-
 spring.jpa.show-sql=false
 logging.level.org.springframework.web=INFO
 
-# מפתח API מ-Google AI Studio – חובה להגדיר משתנה סביבה (לא לשמור בקוד!)
+# חובה: הגדר משתנה סביבה GEMINI_API_KEY (מפתח מ-https://aistudio.google.com/apikey)
 gemini.api-key=${GEMINI_API_KEY}
 gemini.base-url=https://generativelanguage.googleapis.com
 gemini.model=gemini-2.0-flash
 
-# JWT – בפרודקשן להגדיר JWT_SECRET בסביבה
+# אופציונלי: JWT_SECRET לפרודקשן (ברירת מחדל לפיתוח בלבד)
 jwt.secret=${JWT_SECRET:rag-llm-dev-secret-min-32-chars-change-in-prod}
 jwt.expiration-ms=86400000

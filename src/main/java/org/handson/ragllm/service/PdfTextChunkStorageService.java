@@ -48,16 +48,17 @@ public class PdfTextChunkStorageService {
         return geminiClient.generateAnswer(question, context);
     }
 
+    /**
+     * שומר מקטעים עם וקטור embedding ב-DB.
+     * text-embedding-004 מחזיר 768 מימדים; העמודה ב-pdf_chunks היא vector(768) – תואם.
+     */
     @Transactional
     public void saveChunksWithEmbeddings(Long pdfId, List<String> chunks) {
         for (int i = 0; i < chunks.size(); i++) {
             String text = chunks.get(i);
             PdfTextChunk chunk = new PdfTextChunk(pdfId, text, i);
-
-            // יצירת ה-Embedding כאן לפני השמירה הראשונה
             float[] vector = geminiClient.getEmbedding(text);
             chunk.setEmbedding(vector);
-
             repository.save(chunk);
         }
     }

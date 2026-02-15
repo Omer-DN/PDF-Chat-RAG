@@ -8,6 +8,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 public class PdfFileService {
@@ -19,18 +20,21 @@ public class PdfFileService {
     }
 
     @Transactional
-    public PdfFile save(MultipartFile file) throws IOException {
-
-        // מוחק הכל – חוק מערכת
-        repository.deleteAll();
-
+    public PdfFile save(Long userId, MultipartFile file) throws IOException {
         PdfFile pdf = new PdfFile(
+                userId,
                 file.getOriginalFilename(),
                 file.getBytes(),
                 LocalDateTime.now()
         );
-
         return repository.save(pdf);
     }
 
+    public List<PdfFile> findByUserId(Long userId) {
+        return repository.findByUserIdOrderByUploadedAtDesc(userId);
+    }
+
+    public java.util.Optional<PdfFile> findById(Long id) {
+        return repository.findById(id);
+    }
 }

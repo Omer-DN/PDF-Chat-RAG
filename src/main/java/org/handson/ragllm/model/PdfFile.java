@@ -11,6 +11,9 @@ public class PdfFile {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
+
     @Column(name = "filename", nullable = false)
     private String filename;
 
@@ -23,13 +26,15 @@ public class PdfFile {
 
     protected PdfFile() {}
 
-    public PdfFile(String filename, byte[] data, LocalDateTime uploadedAt) {
+    public PdfFile(Long userId, String filename, byte[] data, LocalDateTime uploadedAt) {
+        this.userId = userId;
         this.filename = filename;
         this.data = data;
         this.uploadedAt = uploadedAt;
     }
 
     public Long getId() { return id; }
+    public Long getUserId() { return userId; }
     public String getFilename() { return filename; }
     public byte[] getData() { return data; }
     public LocalDateTime getUploadedAt() { return uploadedAt; }

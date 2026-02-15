@@ -1,7 +1,11 @@
 package org.handson.ragllm.repository;
 
-import org.handson.ragllm.controller.PdfDocument;
 import org.handson.ragllm.model.PdfFile;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface PdfRepository extends JpaRepository<PdfFile, Long> {}
+import java.util.List;
+
+public interface PdfRepository extends JpaRepository<PdfFile, Long> {
+
+    List<PdfFile> findByUserIdOrderByUploadedAtDesc(Long userId);
+}

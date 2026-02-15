@@ -1,0 +1,272 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    font-family: 'Assistant', 'Segoe UI', system-ui, sans-serif;
+    background: #0a0e1a;
+    min-height: 100vh;
+    position: relative;
+  }
+}
+
+/* שכבת צבע עדינה על הרקע */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 120% 80% at 20% 10%, rgba(6, 182, 212, 0.18), transparent 45%),
+    radial-gradient(ellipse 100% 100% at 80% 80%, rgba(139, 92, 246, 0.15), transparent 45%),
+    radial-gradient(ellipse 80% 120% at 50% 100%, rgba(34, 211, 238, 0.1), transparent 50%),
+    radial-gradient(ellipse 90% 90% at 70% 20%, rgba(236, 72, 153, 0.08), transparent 40%);
+  animation: bgPulse 14s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(51, 65, 85, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(51, 65, 85, 0.06) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+  z-index: 0;
+  mask-image: radial-gradient(ellipse 85% 85% at 50% 50%, black 15%, transparent 72%);
+}
+
+@keyframes bgPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.92; transform: scale(1.02); }
+}
+
+/* אורבות צבעוניות מרחפות – אפקט מגניב */
+.bg-orbs {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.bg-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.5;
+  animation: orbFloat 20s ease-in-out infinite;
+}
+
+.bg-orb-1 {
+  width:  min(70vmax, 500px);
+  height: min(70vmax, 500px);
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.4) 0%, transparent 70%);
+  top: -10%;
+  left: -5%;
+  animation-delay: 0s;
+}
+
+.bg-orb-2 {
+  width:  min(60vmax, 420px);
+  height: min(60vmax, 420px);
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.35) 0%, transparent 70%);
+  bottom: -15%;
+  right: -10%;
+  animation-delay: -5s;
+}
+
+.bg-orb-3 {
+  width:  min(50vmax, 380px);
+  height: min(50vmax, 380px);
+  background: radial-gradient(circle, rgba(34, 211, 238, 0.3) 0%, transparent 70%);
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation-delay: -10s;
+}
+
+.bg-orb-4 {
+  width:  min(40vmax, 280px);
+  height: min(40vmax, 280px);
+  background: radial-gradient(circle, rgba(236, 72, 153, 0.25) 0%, transparent 70%);
+  top: 15%;
+  right: 25%;
+  animation-delay: -7s;
+}
+
+@keyframes orbFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.5; }
+  25% { transform: translate(5%, -8%) scale(1.08); opacity: 0.65; }
+  50% { transform: translate(-6%, 5%) scale(0.95); opacity: 0.45; }
+  75% { transform: translate(4%, 6%) scale(1.05); opacity: 0.6; }
+}
+
+.bg-orb-3 { animation-name: orbFloatCenter; }
+@keyframes orbFloatCenter {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.35; }
+  33% { transform: translate(-48%, -52%) scale(1.1); opacity: 0.5; }
+  66% { transform: translate(-52%, -48%) scale(0.92); opacity: 0.4; }
+}
+
+/* נקודות מרחפות – עם נגיעות צבע */
+.ai-dots {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.ai-dot {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  animation: floatDot 18s ease-in-out infinite;
+}
+
+.ai-dot:nth-child(3n) {
+  background: rgba(6, 182, 212, 0.55);
+  box-shadow: 0 0 14px rgba(6, 182, 212, 0.4);
+}
+.ai-dot:nth-child(3n+1) {
+  background: rgba(139, 92, 246, 0.5);
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.35);
+}
+.ai-dot:nth-child(3n+2) {
+  background: rgba(71, 85, 105, 0.6);
+  box-shadow: 0 0 10px rgba(51, 65, 85, 0.5);
+}
+
+.ai-dot:nth-child(1) { left: 10%; top: 20%; animation-delay: 0s; }
+.ai-dot:nth-child(2) { left: 25%; top: 70%; animation-delay: -2s; }
+.ai-dot:nth-child(3) { left: 45%; top: 15%; animation-delay: -4s; }
+.ai-dot:nth-child(4) { left: 60%; top: 60%; animation-delay: -1s; }
+.ai-dot:nth-child(5) { left: 80%; top: 30%; animation-delay: -3s; }
+.ai-dot:nth-child(6) { left: 15%; top: 50%; animation-delay: -5s; }
+.ai-dot:nth-child(7) { left: 90%; top: 75%; animation-delay: -2.5s; }
+.ai-dot:nth-child(8) { left: 70%; top: 10%; animation-delay: -1.5s; }
+.ai-dot:nth-child(9) { left: 35%; top: 85%; animation-delay: -3.5s; }
+.ai-dot:nth-child(10) { left: 55%; top: 45%; animation-delay: -0.5s; }
+
+@keyframes floatDot {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.5; }
+  25% { transform: translate(6px, -10px) scale(1.15); opacity: 0.85; }
+  50% { transform: translate(-4px, 6px) scale(0.95); opacity: 0.65; }
+  75% { transform: translate(10px, 4px) scale(1.08); opacity: 0.8; }
+}
+
+/* קו סריקה – עם זוהר ציאן עדין */
+.ai-scanline {
+  position: fixed;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(6, 182, 212, 0.2), rgba(139, 92, 246, 0.15), transparent);
+  animation: scanline 10s linear infinite;
+  pointer-events: none;
+  z-index: 1;
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.15);
+}
+
+@keyframes scanline {
+  0% { top: 0; opacity: 0; }
+  8% { opacity: 0.8; }
+  92% { opacity: 0.8; }
+  100% { top: 100%; opacity: 0; }
+}
+
+.glass-panel {
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.02),
+    0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.glass-panel-light {
+  background: rgba(30, 41, 59, 0.5);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(148, 163, 184, 0.08);
+}
+
+.history-sidebar::-webkit-scrollbar {
+  width: 5px;
+}
+.history-sidebar::-webkit-scrollbar-track {
+  background: rgba(51, 65, 85, 0.2);
+  border-radius: 3px;
+}
+.history-sidebar::-webkit-scrollbar-thumb {
+  background: rgba(6, 182, 212, 0.4);
+  border-radius: 3px;
+}
+
+.chat-container::-webkit-scrollbar {
+  width: 6px;
+}
+.chat-container::-webkit-scrollbar-track {
+  background: rgba(51, 65, 85, 0.3);
+  border-radius: 3px;
+}
+.chat-container::-webkit-scrollbar-thumb {
+  background: rgba(6, 182, 212, 0.5);
+  border-radius: 3px;
+}
+.chat-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(6, 182, 212, 0.7);
+}
+
+.message-bubble {
+  animation: messagePop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes messagePop {
+  0% { transform: scale(0.96); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.input-glow:focus {
+  box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.4);
+}
+
+.btn-send {
+  background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+  box-shadow: 0 4px 14px rgba(6, 182, 212, 0.4);
+}
+.btn-send:hover:not(:disabled) {
+  box-shadow: 0 6px 20px rgba(6, 182, 212, 0.5);
+  filter: brightness(1.08);
+}
+.btn-send:disabled {
+  opacity: 0.4;
+}
+
+.btn-upload {
+  background: linear-gradient(135deg, rgba(148, 163, 184, 0.2) 0%, rgba(71, 85, 105, 0.3) 100%);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+.btn-upload:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.2) 0%, rgba(6, 182, 212, 0.1) 100%);
+  border-color: rgba(6, 182, 212, 0.4);
+}
+
+.file-item {
+  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+}
+.file-item:hover {
+  transform: translateX(-2px);
+}
+
+.auth-card {
+  background: rgba(15, 23, 42, 0.9);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}

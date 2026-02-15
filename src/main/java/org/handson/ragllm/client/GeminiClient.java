@@ -47,7 +47,8 @@ public class GeminiClient {
 
     public String generateAnswer(String question, String context) {
         try {
-            String url = "https://generativelanguage.googleapis.com/v1/models/gemini-1.5:generateText?key=" + config.getApiKey();
+            String model = config.getModel() != null ? config.getModel() : "gemini-2.0-flash";
+            String url = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent?key=" + config.getApiKey();
 
             String promptText = String.format(
                     "ענה על השאלה רק מתוך הטקסט הבא:\n\n--- PDF CHUNK ---\n%s\n------------------\n\nשאלה:\n%s\n\nאם אין תשובה בטקסט, אמור שאין מידע.",
@@ -55,8 +56,8 @@ public class GeminiClient {
             );
 
             Map<String, Object> requestBody = Map.of(
-                    "prompt", Map.of("text", promptText),
-                    "temperature", 0.0
+                    "contents", List.of(Map.of("parts", List.of(Map.of("text", promptText)))),
+                    "generationConfig", Map.of("temperature", 0.0)
             );
 
             return webClient.post()
@@ -67,7 +68,12 @@ public class GeminiClient {
                     .bodyToMono(Map.class)
                     .map(response -> {
                         List<Map> candidates = (List<Map>) response.get("candidates");
-                        return (String) candidates.get(0).get("output");
+                        if (candidates == null || candidates.isEmpty()) return "לא התקבלה תשובה מהמודל.";
+                        Map content = (Map) candidates.get(0).get("content");
+                        if (content == null) return "לא התקבלה תשובה מהמודל.";
+                        List<Map> parts = (List<Map>) content.get("parts");
+                        if (parts == null || parts.isEmpty()) return "לא התקבלה תשובה מהמודל.";
+                        return (String) parts.get(0).get("text");
                     })
                     .block();
 

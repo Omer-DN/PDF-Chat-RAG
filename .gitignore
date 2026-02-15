@@ -1,0 +1,28 @@
+# Build
+target/
+build/
+*.class
+*.jar
+*.war
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+*~
+
+# Node (rag-ui)
+rag-ui/node_modules/
+rag-ui/dist/
+rag-ui/.vite/
+
+# Env / local – אל תעלה מפתחות!
+.env
+.env.local
+*.log
+application-local.properties
+**/application-local.properties
