@@ -19,6 +19,6 @@ public class GeminiEmbeddingService {
 
     public float[] embedText(String text) {
         // אנחנו קוראים לקליינט שבנינו, הוא כבר יודע להשתמש במפתח ובכתובת
-        return geminiClient.getEmbedding(text);
+        return geminiClient.getEmbeddingForDocument(text);
     }
 }

@@ -10,4 +10,8 @@ public interface QuestionAnswerRepository extends JpaRepository<QuestionAnswer, 
     List<QuestionAnswer> findByUserIdOrderByCreatedAtDesc(Long userId);
 
     List<QuestionAnswer> findByUserIdAndPdfIdOrderByCreatedAtAsc(Long userId, Long pdfId);
+
+    void deleteByUserIdAndPdfId(Long userId, Long pdfId);
+
+    void deleteByUserId(Long userId);
 }

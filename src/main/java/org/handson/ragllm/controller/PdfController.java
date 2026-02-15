@@ -67,16 +67,47 @@ public class PdfController {
         return Map.of("answer", answer);
     }
 
-    /** רשימת הקבצים של המשתמש המחובר */
+    /** רשימת הקבצים של המשתמש המחובר (בלי טעינת תוכן PDF – מונע LOB error) */
     @GetMapping("/list")
     public List<Map<String, Object>> listMyFiles(@AuthenticationPrincipal UserPrincipal user) {
-        return pdfFileService.findByUserId(user.getId()).stream()
+        return pdfFileService.findSummariesByUserId(user.getId()).stream()
                 .map(f -> Map.<String, Object>of(
                         "id", f.getId(),
                         "filename", f.getFilename(),
                         "uploadedAt", f.getUploadedAt().toString()
                 ))
                 .collect(Collectors.toList());
+    }
+
+    /** מרענן embeddings למסמך (מתקן מסמכים עם וקטורי אפס). רק לבעלים. */
+    @PostMapping("/{pdfId}/reembed")
+    public Map<String, Object> reembedPdf(
+            @AuthenticationPrincipal UserPrincipal user,
+            @PathVariable Long pdfId) {
+        if (pdfFileService.findById(pdfId).filter(f -> f.getUserId().equals(user.getId())).isEmpty()) {
+            return Map.of("ok", false, "message", "מסמך לא נמצא או אין הרשאה.");
+        }
+        int updated = chunkStorageService.reEmbedChunks(pdfId);
+        return Map.of("ok", true, "message", "עודכנו " + updated + " מקטעים.", "chunksUpdated", updated);
+    }
+
+    /** מחיקת כל ההיסטוריה של המשתמש – כל הקבצים וכל השאלות/תשובות. (לפני /{pdfId} כדי ש־/all ייתפס.) */
+    @DeleteMapping("/all")
+    public Map<String, Object> deleteAllMyHistory(@AuthenticationPrincipal UserPrincipal user) {
+        pdfFileService.deleteAllByUserId(user.getId());
+        return Map.of("ok", true, "message", "כל ההיסטוריה נמחקה.");
+    }
+
+    /** מחיקת קובץ PDF מסוים וכל הצ'אט והמקטעים שלו. רק לבעלים. */
+    @DeleteMapping("/{pdfId}")
+    public Map<String, Object> deletePdf(
+            @AuthenticationPrincipal UserPrincipal user,
+            @PathVariable Long pdfId) {
+        boolean deleted = pdfFileService.deletePdfAndRelated(pdfId, user.getId());
+        if (!deleted) {
+            return Map.of("ok", false, "message", "מסמך לא נמצא או אין הרשאה.");
+        }
+        return Map.of("ok", true, "message", "הקובץ והצ'אט נמחקו.");
     }
 
     /** שאלות ותשובות למסמך (רק של המשתמש המחובר; המסמך חייב להיות שלו) */

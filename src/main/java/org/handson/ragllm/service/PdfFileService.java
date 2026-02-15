@@ -1,9 +1,12 @@
 package org.handson.ragllm.service;
 
-import jakarta.transaction.Transactional;
 import org.handson.ragllm.model.PdfFile;
+import org.handson.ragllm.model.PdfFileSummary;
 import org.handson.ragllm.repository.PdfRepository;
+import org.handson.ragllm.repository.PdfTextChunkRepository;
+import org.handson.ragllm.repository.QuestionAnswerRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -14,9 +17,15 @@ import java.util.List;
 public class PdfFileService {
 
     private final PdfRepository repository;
+    private final QuestionAnswerRepository questionAnswerRepository;
+    private final PdfTextChunkRepository chunkRepository;
 
-    public PdfFileService(PdfRepository repository) {
+    public PdfFileService(PdfRepository repository,
+                          QuestionAnswerRepository questionAnswerRepository,
+                          PdfTextChunkRepository chunkRepository) {
         this.repository = repository;
+        this.questionAnswerRepository = questionAnswerRepository;
+        this.chunkRepository = chunkRepository;
     }
 
     @Transactional
@@ -30,11 +39,42 @@ public class PdfFileService {
         return repository.save(pdf);
     }
 
+    /** רשימת קבצים לפי משתמש – בתוך טרנזקציה כדי לאפשר גישה ל-LOB ב-PostgreSQL */
+    @Transactional(readOnly = true)
     public List<PdfFile> findByUserId(Long userId) {
         return repository.findByUserIdOrderByUploadedAtDesc(userId);
     }
 
+    /** רשימת מטא-דאטה בלבד (בלי תוכן PDF) – מונע "Unable to access lob stream". */
+    @Transactional(readOnly = true)
+    public List<PdfFileSummary> findSummariesByUserId(Long userId) {
+        return repository.findSummariesByUserIdOrderByUploadedAtDesc(userId);
+    }
+
     public java.util.Optional<PdfFile> findById(Long id) {
         return repository.findById(id);
+    }
+
+    /** מוחק קובץ PDF אחד וכל הצ'אט והמקטעים שלו. רק אם המשתמש בעלים. */
+    @Transactional
+    public boolean deletePdfAndRelated(Long pdfId, Long userId) {
+        if (repository.findById(pdfId).filter(f -> f.getUserId().equals(userId)).isEmpty()) {
+            return false;
+        }
+        questionAnswerRepository.deleteByUserIdAndPdfId(userId, pdfId);
+        chunkRepository.deleteByPdfId(pdfId);
+        repository.deleteById(pdfId);
+        return true;
+    }
+
+    /** מוחק את כל הקבצים וההיסטוריה של המשתמש. */
+    @Transactional
+    public void deleteAllByUserId(Long userId) {
+        questionAnswerRepository.deleteByUserId(userId);
+        List<PdfFile> files = repository.findByUserIdOrderByUploadedAtDesc(userId);
+        for (PdfFile f : files) {
+            chunkRepository.deleteByPdfId(f.getId());
+        }
+        repository.deleteByUserId(userId);
     }
 }

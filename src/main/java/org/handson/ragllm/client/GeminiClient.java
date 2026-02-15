@@ -1,6 +1,8 @@
 package org.handson.ragllm.client;
 
 import org.handson.ragllm.config.GeminiConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -8,6 +10,8 @@ import java.util.*;
 
 @Component
 public class GeminiClient {
+
+    private static final Logger log = LoggerFactory.getLogger(GeminiClient.class);
 
     private final WebClient webClient;
     private final GeminiConfig config;
@@ -17,15 +21,31 @@ public class GeminiClient {
         this.webClient = WebClient.builder().build();
     }
 
-    public float[] getEmbedding(String text) {
-        try {
-            // שימוש ב-v1beta עם המפתח החדש
-            String url = "https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=" + config.getApiKey();
+    /** embedding למקטע מסמך (לשמירה ב-DB) – taskType RETRIEVAL_DOCUMENT */
+    public float[] getEmbeddingForDocument(String text) {
+        return getEmbedding(text, "RETRIEVAL_DOCUMENT");
+    }
 
-            Map<String, Object> requestBody = Map.of(
-                    "model", "models/text-embedding-004",
-                    "content", Map.of("parts", List.of(Map.of("text", text)))
-            );
+    /** embedding לשאילתת משתמש (לחיפוש) – taskType RETRIEVAL_QUERY */
+    public float[] getEmbeddingForQuery(String text) {
+        return getEmbedding(text, "RETRIEVAL_QUERY");
+    }
+
+    private float[] getEmbedding(String text, String taskType) {
+        if (config.getApiKey() == null || config.getApiKey().isBlank()) {
+            log.error("GEMINI_API_KEY is not set");
+            throw new RuntimeException("יצירת embedding נכשלה: מפתח API חסר (GEMINI_API_KEY)");
+        }
+        try {
+            String modelName = config.getEmbeddingModel() != null ? config.getEmbeddingModel() : "gemini-embedding-001";
+            int dims = config.getEmbeddingDimensions() > 0 ? config.getEmbeddingDimensions() : 768;
+            String url = "https://generativelanguage.googleapis.com/v1beta/models/" + modelName + ":embedContent?key=" + config.getApiKey();
+
+            Map<String, Object> requestBody = new java.util.HashMap<>();
+            requestBody.put("model", "models/" + modelName);
+            requestBody.put("content", Map.of("parts", List.of(Map.of("text", text != null ? text : ""))));
+            requestBody.put("taskType", taskType != null ? taskType : "RETRIEVAL_DOCUMENT");
+            requestBody.put("outputDimensionality", dims);
 
             return webClient.post()
                     .uri(url)
@@ -33,16 +53,34 @@ public class GeminiClient {
                     .bodyValue(requestBody)
                     .retrieve()
                     .bodyToMono(Map.class)
-                    .map(response -> {
-                        Map<String, Object> embedding = (Map<String, Object>) response.get("embedding");
-                        List<Double> values = (List<Double>) embedding.get("values");
-                        float[] fValues = new float[values.size()];
-                        for (int i = 0; i < values.size(); i++) fValues[i] = values.get(i).floatValue();
-                        return fValues;
-                    }).block();
+                    .map(this::parseEmbeddingResponse)
+                    .block();
         } catch (Exception e) {
-            return new float[768];
+            log.error("Gemini getEmbedding failed for text length={}, taskType={}. Error: {}", text != null ? text.length() : 0, taskType, e.getMessage(), e);
+            throw new RuntimeException("יצירת embedding נכשלה: " + e.getMessage(), e);
         }
+    }
+
+    private float[] parseEmbeddingResponse(Map<String, Object> response) {
+        Object emb = response.get("embedding");
+        if (emb == null) {
+            log.error("Gemini embedding response missing 'embedding' key. Response keys: {}", response.keySet());
+            throw new IllegalStateException("Gemini API response missing embedding");
+        }
+        Map<String, Object> embedding = (Map<String, Object>) emb;
+        Object vals = embedding.get("values");
+        if (vals == null || !(vals instanceof List)) {
+            log.error("Gemini embedding response missing 'values'. embedding keys: {}", embedding != null ? embedding.keySet() : "null");
+            throw new IllegalStateException("Gemini API response missing embedding values");
+        }
+        List<?> values = (List<?>) vals;
+        float[] fValues = new float[values.size()];
+        for (int i = 0; i < values.size(); i++) {
+            Object v = values.get(i);
+            if (v instanceof Number) fValues[i] = ((Number) v).floatValue();
+            else throw new IllegalStateException("Embedding value not a number: " + v);
+        }
+        return fValues;
     }
 
     public String generateAnswer(String question, String context) {

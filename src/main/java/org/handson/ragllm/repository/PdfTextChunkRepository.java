@@ -13,6 +13,8 @@ public interface PdfTextChunkRepository extends JpaRepository<PdfTextChunk, Long
     // המתודה שחסרה לך - חייבת להתאים לשם השדה ב-Entity
     List<PdfTextChunk> findByPdfIdOrderByChunkNumberAsc(Long pdfId);
 
+    void deleteByPdfId(Long pdfId);
+
     // השאילתה לחיפוש דמיון (RAG) - מחזירה טקסט כדי למנוע שגיאות וקטורים
     @Query(value = """
         SELECT text

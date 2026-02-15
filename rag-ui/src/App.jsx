@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
-import { Sparkles, FileText, Upload, Send, Bot, User, Loader2, LogOut, History } from "lucide-react";
+import { Sparkles, FileText, Upload, Send, Bot, User, Loader2, LogOut, RefreshCw, Trash2 } from "lucide-react";
 
 const API_BASE = import.meta.env.DEV ? "/api" : "http://localhost:8080/api";
 
@@ -40,6 +40,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [askError, setAskError] = useState("");
   const [fileList, setFileList] = useState([]);
+  const [fileListLoading, setFileListLoading] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
 
   const fileInputRef = useRef(null);
@@ -49,17 +50,50 @@ export default function App() {
   useEffect(() => { scrollToBottom(); }, [messages, loading]);
 
   const fetchFileList = async () => {
+    setFileListLoading(true);
     try {
       const { data } = await apiClient().get("/pdf/list");
       setFileList(Array.isArray(data) ? data : []);
     } catch {
       setFileList([]);
+    } finally {
+      setFileListLoading(false);
     }
   };
 
   useEffect(() => {
     if (token) fetchFileList();
   }, [token]);
+
+  const deleteOneFile = async (id, filename) => {
+    if (!window.confirm(`למחוק את הקובץ "${filename}" ואת כל צ'אט השאלות והתשובות?`)) return;
+    try {
+      await apiClient().delete(`/pdf/${id}`);
+      if (pdfId === id) {
+        setPdfId(null);
+        setSelectedFileName(null);
+        setMessages([]);
+      }
+      fetchFileList();
+    } catch (err) {
+      const msg = err.response?.data?.message || "שגיאה במחיקה.";
+      alert(msg);
+    }
+  };
+
+  const deleteAllHistory = async () => {
+    if (!window.confirm("למחוק את כל הקבצים ואת כל ההיסטוריה? לא ניתן לשחזר.")) return;
+    try {
+      await apiClient().delete("/pdf/all");
+      setPdfId(null);
+      setSelectedFileName(null);
+      setMessages([]);
+      fetchFileList();
+    } catch (err) {
+      const msg = err.response?.data?.message || "שגיאה במחיקה.";
+      alert(msg);
+    }
+  };
 
   const loadFileFromHistory = async (id, filename) => {
     setHistoryLoading(true);
@@ -100,7 +134,9 @@ export default function App() {
       setToken(data.token);
       setUser({ id: data.userId, username: data.username, email: data.email });
     } catch (err) {
-      setAuthError(err.response?.data?.message || "שגיאה בהתחברות.");
+      const msg = err.response?.data?.message || (err.response ? "שגיאה בהתחברות." : "שגיאה בתקשורת עם השרת. וודא שהשרת רץ ב־8080.");
+      setAuthError(msg);
+      console.error("Login error:", err.response?.status, err.response?.data, err.message);
     } finally {
       setAuthLoading(false);
     }
@@ -125,7 +161,9 @@ export default function App() {
       setToken(data.token);
       setUser({ id: data.userId, username: data.username, email: data.email });
     } catch (err) {
-      setAuthError(err.response?.data?.message || "שגיאה ברישום.");
+      const msg = err.response?.data?.message || (err.response ? "שגיאה ברישום." : "שגיאה בתקשורת עם השרת. וודא שהשרת רץ ב־8080.");
+      setAuthError(msg);
+      console.error("Register error:", err.response?.status, err.response?.data, err.message);
     } finally {
       setAuthLoading(false);
     }
@@ -154,19 +192,23 @@ export default function App() {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const { data } = await apiClient().post("/pdf/upload", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      // אל תגדיר Content-Type ידנית – axios יוסיף boundary ל-multipart
+      const { data } = await apiClient().post("/pdf/upload", formData);
       setPdfId(data.pdfId);
       setSelectedFileName(file.name);
       fetchFileList();
     } catch (err) {
       const status = err.response?.status;
-      let msg = err.response?.data?.message;
-      if (status === 401) msg = "יש להתחבר מחדש.";
-      else if (status === 413) msg = "הקובץ גדול מדי. גודל מקסימלי 50MB.";
+      const data = err.response?.data;
+      let msg = typeof data?.message === "string" ? data.message : data?.error || null;
+      if (status === 401) {
+        msg = "ההתחברות פגה. יש להתחבר מחדש.";
+        handleLogout();
+      } else if (status === 413) msg = "הקובץ גדול מדי. גודל מקסימלי 50MB.";
+      else if (status === 500 && msg) msg = `שגיאה בשרת: ${msg}`;
       else if (!msg) msg = err.message?.includes("Network") || !err.response ? "אין חיבור לשרת. וודא שהשרת רץ על פורט 8080." : "שגיאה בתקשורת עם השרת.";
       setUploadError(msg);
+      console.error("Upload error:", status, data, err.message);
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -284,31 +326,67 @@ export default function App() {
       <div className="ai-scanline" aria-hidden />
 
       <div className="flex-1 flex min-h-0 gap-3">
-        {/* עמודה אנכית – היסטוריית קבצים */}
+        {/* פאנל ימני – שלום, הקבצים שלי + שחזור צ'אט */}
         <aside className="w-56 md:w-64 shrink-0 flex flex-col glass-panel rounded-2xl overflow-hidden border border-slate-700/30">
-          <div className="shrink-0 flex items-center gap-2 px-4 py-3 border-b border-slate-700/50">
-            <History className="w-4 h-4 text-cyan-400" />
-            <span className="text-sm font-semibold text-slate-200">היסטוריית קבצים</span>
+          <div className="shrink-0 px-4 pt-3 pb-2 border-b border-slate-700/50">
+            <p className="text-sm font-medium text-slate-200 truncate mb-3" title={user?.username || ""}>שלום {user?.username}</p>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <FileText className="w-4 h-4 text-cyan-400 shrink-0" />
+                <span className="text-sm font-semibold text-slate-200 truncate">הקבצים שלי</span>
+              </div>
+              <button
+                type="button"
+                onClick={fetchFileList}
+                disabled={fileListLoading}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-cyan-400 hover:bg-slate-700/50 transition-colors shrink-0"
+                title="רענן רשימת קבצים"
+              >
+                <RefreshCw className={`w-4 h-4 ${fileListLoading ? "animate-spin" : ""}`} />
+              </button>
+            </div>
+            <p className="text-xs text-slate-500 mt-1.5">לחץ על קובץ כדי לשחזר צ'אט שאלות ותשובות</p>
           </div>
-          <div className="flex-1 overflow-y-auto p-2 history-sidebar">
-            {fileList.length === 0 ? (
-              <p className="text-slate-500 text-sm p-3 text-center">אין קבצים. העלה PDF או בחר מסמך קיים.</p>
-            ) : (
-              <ul className="space-y-1.5">
-                {fileList.map((f) => (
-                  <li key={f.id}>
-                    <button
-                      type="button"
-                      onClick={() => loadFileFromHistory(f.id, f.filename)}
-                      className={`file-item w-full text-right rounded-xl px-3 py-2.5 border ${pdfId === f.id ? "bg-cyan-500/20 border-cyan-400/50 text-cyan-100" : "bg-slate-700/30 border-slate-600/50 text-slate-200 hover:bg-slate-700/50 hover:border-cyan-500/30"}`}
-                    >
-                      <span className="block truncate text-sm font-medium" title={f.filename}>{f.filename}</span>
-                      <span className="block text-xs text-slate-500 mt-0.5">{f.uploadedAt?.slice(0, 10)}</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
+          <div className="flex-1 flex flex-col min-h-0">
+            <div className="flex-1 overflow-y-auto p-2 history-sidebar">
+              {fileList.length === 0 ? (
+                <p className="text-slate-500 text-sm p-3 text-center">עדיין לא הועלו קבצים. השתמש בכפתור העלאה למטה.</p>
+              ) : (
+                <ul className="space-y-1.5">
+                  {fileList.map((f) => (
+                    <li key={f.id} className="flex items-stretch gap-1">
+                      <button
+                        type="button"
+                        onClick={() => loadFileFromHistory(f.id, f.filename)}
+                        className={`file-item flex-1 min-w-0 text-right rounded-xl px-3 py-2.5 border transition-colors ${pdfId === f.id ? "bg-cyan-500/20 border-cyan-400/50 text-cyan-100" : "bg-slate-700/30 border-slate-600/50 text-slate-200 hover:bg-slate-700/50 hover:border-cyan-500/30"}`}
+                      >
+                        <span className="block truncate text-sm font-medium" title={f.filename}>{f.filename}</span>
+                        <span className="block text-xs text-slate-500 mt-0.5">{f.uploadedAt?.slice(0, 10)}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); deleteOneFile(f.id, f.filename); }}
+                        className="flex items-center justify-center w-9 h-9 rounded-xl border border-slate-600/50 bg-slate-800/40 text-slate-400 hover:border-red-400/60 hover:bg-red-500/15 hover:text-red-300 transition-all duration-200 shrink-0"
+                        title="מחק קובץ וצ'אט"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <div className="shrink-0 p-3 border-t border-slate-700/50 bg-slate-900/30">
+              <button
+                type="button"
+                onClick={deleteAllHistory}
+                className="w-full flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl text-sm font-semibold border border-red-400/30 bg-red-500/10 text-red-200 hover:border-red-400/50 hover:bg-red-500/20 hover:text-red-100 transition-all duration-200 shadow-sm"
+                title="מחק את כל הקבצים וההיסטוריה"
+              >
+                <Trash2 className="w-4 h-4 shrink-0" />
+                <span>מחיקת כל ההיסטוריה</span>
+              </button>
+            </div>
           </div>
         </aside>
 
@@ -322,18 +400,18 @@ export default function App() {
             </div>
             <h1 className="text-lg font-bold text-slate-100 truncate">RAG PDF AI</h1>
             {pdfId && (
-              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 max-w-[200px] min-w-0" title={selectedFileName || ""}>
-                <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse shrink-0" />
-                <span className="truncate text-sm text-emerald-200">{selectedFileName || "מסמך"}</span>
+              <div className="hidden sm:flex items-center gap-2 flex-wrap min-w-0">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 max-w-[200px] min-w-0" title={selectedFileName || ""}>
+                  <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse shrink-0" />
+                  <span className="truncate text-sm text-emerald-200">{selectedFileName || "מסמך"}</span>
+                </div>
               </div>
             )}
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="text-sm text-slate-400 truncate max-w-[120px]">{user?.username}</span>
-            <button type="button" onClick={handleLogout} className="p-2 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 transition-colors" title="התנתק">
-              <LogOut className="w-5 h-5" />
-            </button>
-          </div>
+          <button type="button" onClick={handleLogout} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-slate-200 hover:text-white hover:bg-slate-700/50 transition-colors shrink-0 font-medium" title="התנתק">
+            <LogOut className="w-5 h-5" />
+            <span>התנתק</span>
+          </button>
         </header>
 
         {/* אזור הצ'אט */}
