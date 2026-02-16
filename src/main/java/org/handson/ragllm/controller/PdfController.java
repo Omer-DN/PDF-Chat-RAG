@@ -4,18 +4,25 @@ import org.handson.ragllm.model.PdfFile;
 import org.handson.ragllm.model.QuestionRequest;
 import org.handson.ragllm.security.UserPrincipal;
 import org.handson.ragllm.service.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/pdf")
 public class PdfController {
+
+    private static final Logger log = LoggerFactory.getLogger(PdfController.class);
 
     private final PdfFileService pdfFileService;
     private final PdfTextExtractorService textExtractorService;
@@ -62,9 +69,53 @@ public class PdfController {
             @PathVariable Long pdfId,
             @RequestBody QuestionRequest request) {
 
-        String answer = chunkStorageService.askQuestion(pdfId, request.getQuestion());
+        String answer = chunkStorageService.askQuestion(pdfId, user.getId(), request.getQuestion());
         questionAnswerService.save(user.getId(), pdfId, request.getQuestion(), answer);
         return Map.of("answer", answer);
+    }
+
+    /** סטרימינג תשובה – SSE; בסיום השמירה ל־question_answers. */
+    @PostMapping(value = "/{pdfId}/ask-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter askStream(
+            @AuthenticationPrincipal UserPrincipal user,
+            @PathVariable Long pdfId,
+            @RequestBody QuestionRequest request) {
+
+        SseEmitter emitter = new SseEmitter(120_000L);
+        Long userId = user.getId();
+        String question = request.getQuestion();
+        AtomicReference<StringBuilder> fullAnswer = new AtomicReference<>(new StringBuilder());
+
+        emitter.onTimeout(() -> emitter.complete());
+        emitter.onCompletion(() -> {});
+        emitter.onError(ex -> log.warn("SSE client error: {}", ex.getMessage()));
+
+        chunkStorageService.askQuestionStreaming(pdfId, userId, question)
+                .subscribe(
+                        chunk -> {
+                            fullAnswer.get().append(chunk);
+                            try {
+                                emitter.send(SseEmitter.event().data(chunk));
+                            } catch (IOException e) {
+                                try { emitter.completeWithError(e); } catch (Exception ignored) {}
+                            }
+                        },
+                        err -> {
+                            try {
+                                emitter.completeWithError(err);
+                            } catch (Exception ignored) {}
+                        },
+                        () -> {
+                            try {
+                                questionAnswerService.save(userId, pdfId, question, fullAnswer.get().toString());
+                                emitter.complete();
+                            } catch (Exception e) {
+                                try { emitter.completeWithError(e); } catch (Exception ignored) {}
+                            }
+                        }
+                );
+
+        return emitter;
     }
 
     /** רשימת הקבצים של המשתמש המחובר (בלי טעינת תוכן PDF – מונע LOB error) */

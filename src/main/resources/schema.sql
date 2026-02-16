@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS users (
     username      VARCHAR(100) NOT NULL UNIQUE,
     email         VARCHAR(255) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
+    google_sub    VARCHAR(255) UNIQUE,
     created_at    TIMESTAMP NOT NULL
 );
 

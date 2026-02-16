@@ -30,6 +30,11 @@ export default function App() {
   const [authMode, setAuthMode] = useState("login");
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState("");
+  const [loginUsername, setLoginUsername] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [regUsername, setRegUsername] = useState("");
+  const [regEmail, setRegEmail] = useState("");
+  const [regPassword, setRegPassword] = useState("");
 
   const [pdfId, setPdfId] = useState(null);
   const [selectedFileName, setSelectedFileName] = useState(null);
@@ -116,11 +121,11 @@ export default function App() {
     }
   };
 
+  /** כניסה רק עם שם משתמש וסיסמה */
   const handleLogin = async (e) => {
     e.preventDefault();
-    const form = e.target;
-    const username = form.username?.value?.trim();
-    const password = form.password?.value;
+    const username = loginUsername.trim();
+    const password = loginPassword;
     if (!username || !password) {
       setAuthError("נא למלא שם משתמש וסיסמה.");
       return;
@@ -142,14 +147,18 @@ export default function App() {
     }
   };
 
+  /** הרשמה: שם משתמש, אימייל (לצרכים בהמשך), סיסמה – הכניסה אחר כך רק עם שם משתמש וסיסמה */
   const handleRegister = async (e) => {
     e.preventDefault();
-    const form = e.target;
-    const username = form.username?.value?.trim();
-    const email = form.email?.value?.trim();
-    const password = form.password?.value;
+    const username = regUsername.trim();
+    const email = regEmail.trim();
+    const password = regPassword;
     if (!username || !email || !password) {
       setAuthError("נא למלא את כל השדות.");
+      return;
+    }
+    if (password.length < 4) {
+      setAuthError("הסיסמה חייבת להכיל לפחות 4 תווים.");
       return;
     }
     setAuthError("");
@@ -255,14 +264,14 @@ export default function App() {
           <div className="flex gap-1 mb-6 p-1 rounded-xl bg-slate-800/50">
             <button
               type="button"
-              onClick={() => { setAuthMode("login"); setAuthError(""); }}
+              onClick={() => { setAuthMode("login"); setAuthError(""); setLoginPassword(""); }}
               className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors ${authMode === "login" ? "bg-cyan-500/30 text-cyan-300 shadow-lg" : "text-slate-400 hover:text-slate-200"}`}
             >
               התחברות
             </button>
             <button
               type="button"
-              onClick={() => { setAuthMode("register"); setAuthError(""); }}
+              onClick={() => { setAuthMode("register"); setAuthError(""); setRegPassword(""); }}
               className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors ${authMode === "register" ? "bg-cyan-500/30 text-cyan-300 shadow-lg" : "text-slate-400 hover:text-slate-200"}`}
             >
               הרשמה
@@ -272,11 +281,11 @@ export default function App() {
             <form onSubmit={handleLogin} className="space-y-5">
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-1.5">שם משתמש</label>
-                <input name="username" type="text" className="w-full rounded-xl bg-slate-800/80 border border-slate-600 text-slate-100 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 placeholder-slate-500" placeholder="username" autoComplete="username" />
+                <input type="text" value={loginUsername} onChange={(e) => setLoginUsername(e.target.value)} className="w-full rounded-xl bg-slate-800/80 border border-slate-600 text-slate-100 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 placeholder-slate-500" placeholder="username" autoComplete="username" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-1.5">סיסמה</label>
-                <input name="password" type="password" className="w-full rounded-xl bg-slate-800/80 border border-slate-600 text-slate-100 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 placeholder-slate-500" placeholder="••••••••" autoComplete="current-password" />
+                <input type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} className="w-full rounded-xl bg-slate-800/80 border border-slate-600 text-slate-100 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 placeholder-slate-500" placeholder="••••••••" autoComplete="current-password" />
               </div>
               <button type="submit" disabled={authLoading} className="w-full bg-gradient-to-r from-cyan-500 to-cyan-600 text-white rounded-xl py-3.5 font-semibold hover:from-cyan-400 hover:to-cyan-500 disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/25">
                 {authLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
@@ -287,15 +296,15 @@ export default function App() {
             <form onSubmit={handleRegister} className="space-y-5">
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-1.5">שם משתמש</label>
-                <input name="username" type="text" className="w-full rounded-xl bg-slate-800/80 border border-slate-600 text-slate-100 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 placeholder-slate-500" placeholder="username" autoComplete="username" />
+                <input type="text" value={regUsername} onChange={(e) => setRegUsername(e.target.value)} className="w-full rounded-xl bg-slate-800/80 border border-slate-600 text-slate-100 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 placeholder-slate-500" placeholder="username" autoComplete="username" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-1.5">אימייל</label>
-                <input name="email" type="email" className="w-full rounded-xl bg-slate-800/80 border border-slate-600 text-slate-100 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 placeholder-slate-500" placeholder="email@example.com" autoComplete="email" />
+                <input type="email" value={regEmail} onChange={(e) => setRegEmail(e.target.value)} className="w-full rounded-xl bg-slate-800/80 border border-slate-600 text-slate-100 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 placeholder-slate-500" placeholder="email@example.com" autoComplete="email" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-1.5">סיסמה</label>
-                <input name="password" type="password" className="w-full rounded-xl bg-slate-800/80 border border-slate-600 text-slate-100 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 placeholder-slate-500" placeholder="••••••••" autoComplete="new-password" />
+                <input type="password" value={regPassword} onChange={(e) => setRegPassword(e.target.value)} className="w-full rounded-xl bg-slate-800/80 border border-slate-600 text-slate-100 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 placeholder-slate-500" placeholder="••••••••" autoComplete="new-password" />
               </div>
               <button type="submit" disabled={authLoading} className="w-full bg-gradient-to-r from-cyan-500 to-cyan-600 text-white rounded-xl py-3.5 font-semibold hover:from-cyan-400 hover:to-cyan-500 disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/25">
                 {authLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
@@ -311,7 +320,8 @@ export default function App() {
 
   return (
     <div className="h-screen flex flex-col p-3 md:p-4 relative z-10" dir="rtl">
-      {/* אורבות צבעוניות ברקע */}
+      {/* רקע מתחלף מגניב: mesh + אורבות */}
+      <div className="bg-mesh" aria-hidden />
       <div className="bg-orbs" aria-hidden>
         <div className="bg-orb bg-orb-1" />
         <div className="bg-orb bg-orb-2" />
@@ -326,9 +336,9 @@ export default function App() {
       <div className="ai-scanline" aria-hidden />
 
       <div className="flex-1 flex min-h-0 gap-3">
-        {/* פאנל ימני – שלום, הקבצים שלי + שחזור צ'אט */}
-        <aside className="w-56 md:w-64 shrink-0 flex flex-col glass-panel rounded-2xl overflow-hidden border border-slate-700/30">
-          <div className="shrink-0 px-4 pt-3 pb-2 border-b border-slate-700/50">
+        {/* פאנל ימני – שלום, הקבצים שלי + שחזור צ'אט (גוון שונה) */}
+        <aside className="w-56 md:w-64 shrink-0 flex flex-col glass-panel-history rounded-2xl overflow-hidden border border-indigo-500/20">
+          <div className="shrink-0 px-4 pt-3 pb-2 border-b border-slate-700/50 panel-header">
             <p className="text-sm font-medium text-slate-200 truncate mb-3" title={user?.username || ""}>שלום {user?.username}</p>
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
@@ -376,7 +386,7 @@ export default function App() {
                 </ul>
               )}
             </div>
-            <div className="shrink-0 p-3 border-t border-slate-700/50 bg-slate-900/30">
+            <div className="shrink-0 p-3 border-t border-slate-700/50 panel-sidebar-footer">
               <button
                 type="button"
                 onClick={deleteAllHistory}
@@ -393,7 +403,7 @@ export default function App() {
         {/* חלון ראשי – צ'אט */}
         <div className="flex-1 min-w-0 flex flex-col glass-panel rounded-2xl overflow-hidden">
         {/* Header */}
-        <header className="shrink-0 flex items-center justify-between px-4 md:px-6 py-3 border-b border-slate-700/50">
+        <header className="shrink-0 flex items-center justify-between px-4 md:px-6 py-3 border-b border-slate-700/50 panel-header">
           <div className="flex items-center gap-3 min-w-0">
             <div className="p-1.5 rounded-xl bg-cyan-500/20">
               <Sparkles className="w-6 h-6 text-cyan-400" />
@@ -416,7 +426,7 @@ export default function App() {
 
         {/* אזור הצ'אט */}
         <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 chat-container">
+          <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 chat-container chat-content-area">
             {historyLoading && (
               <div className="flex justify-center py-8">
                 <Loader2 className="w-10 h-10 text-cyan-400 animate-spin" />
@@ -456,7 +466,7 @@ export default function App() {
           </div>
 
           {/* שורת שליחה + טעינת קבצים */}
-          <div className="shrink-0 p-4 border-t border-slate-700/50 bg-slate-900/40">
+          <div className="shrink-0 p-4 border-t border-slate-700/50 panel-input-bar">
             {uploadError && (
               <p className="text-amber-400 text-sm mb-2 text-center font-medium">{uploadError}</p>
             )}
